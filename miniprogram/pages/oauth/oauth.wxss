@@ -1,0 +1,184 @@
+/* pages/oauth/oauth.wxss - OAuth 引导页样式 */
+page {
+  background: #f8fafc;
+}
+
+.container {
+  min-height: 100vh;
+  padding: 80rpx 32rpx 40rpx;
+}
+
+/* Logo 区域 — 与登录页一致 */
+.logo-area {
+  text-align: center;
+  margin-bottom: 64rpx;
+}
+
+.logo-icon {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 28rpx;
+  background: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24rpx;
+}
+
+.logo-text {
+  color: #FFFFFF;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.app-name {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+}
+
+.app-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #6B7280;
+}
+
+/* 加载中 */
+.state-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 120rpx;
+}
+
+.spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 6rpx solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.desc {
+  font-size: 28rpx;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 48rpx;
+}
+
+/* 表单区域 */
+.form-area {
+  margin-top: 32rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 24rpx;
+}
+
+/* 步骤列表 */
+.steps {
+  width: 100%;
+  margin-bottom: 32rpx;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.step-num {
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+  background: #2563eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+  margin-top: 2rpx;
+}
+
+.step-text {
+  font-size: 26rpx;
+  color: #334155;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* URL 预览 */
+.url-preview,
+.url-box {
+  width: 100%;
+  padding: 20rpx 24rpx;
+  background: #f1f5f9;
+  border-radius: 12rpx;
+  margin-bottom: 32rpx;
+  box-sizing: border-box;
+}
+
+.url-label {
+  font-size: 24rpx;
+  color: #64748b;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.url-text {
+  font-size: 24rpx;
+  color: #475569;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.url-text-full {
+  font-size: 24rpx;
+  color: #2563eb;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+/* 按钮组 — 使用全局 .btn-primary / .btn-secondary，仅补充宽度 */
+.btn-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-top: 8rpx;
+}
+
+/* 覆盖确保按钮文字完整显示 */
+.btn-group .btn-primary,
+.btn-group .btn-secondary {
+  width: 100%;
+  padding-top: 28rpx;
+  padding-bottom: 28rpx;
+  font-size: 32rpx;
+  line-height: 1.2;
+}

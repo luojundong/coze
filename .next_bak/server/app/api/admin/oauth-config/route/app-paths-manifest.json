@@ -1,0 +1,3 @@
+{
+  "/api/admin/oauth-config/route": "app/api/admin/oauth-config/route.js"
+}

@@ -1,0 +1,45 @@
+﻿▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.production
+
+  Creating an optimized production build ...
+  Using external babel configuration from D:\wwwroot\CozeZnt\project_20260611_133006\projects\.babelrc
+System.Management.Automation.RemoteException
+<--- Last few GCs --->
+System.Management.Automation.RemoteException
+[16560:0000019DEC723000]     2656 ms: Scavenge 46.1 (62.9) -> 37.9 (67.4) MB, pooled: 0 MB, 6.37 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[16560:0000019DEC723000]     3317 ms: Mark-Compact 51.2 (68.1) -> 33.4 (107.6) MB, pooled: 0 MB, 9.63 / 0.00 ms  (+ 0.3 ms in 66 steps since start of marking, biggest step 0.0 ms, walltime since start of marking 23 ms) (average mu = 0.997, current mu = 0.
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+System.Management.Automation.RemoteException
+System.Management.Automation.RemoteException
+<--- Last few GCs --->
+System.Management.Automation.RemoteException
+[16560:0000019DEC723000]     2656 ms: Scavenge 46.1 (62.9) -> 37.9 (67.4) MB, pooled: 0 MB, 6.37 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[16560:0000019DEC723000]     3317 ms: Mark-Compact 51.2 (68.1) -> 33.4 (107.6) MB, pooled: 0 MB, 9.63 / 0.00 ms  (+ 0.3 ms in 66 steps since start of marking, biggest step 0.0 ms, walltime since start of marking 23 ms) (average mu = 0.997, current mu = 0.
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+System.Management.Automation.RemoteException
+ 1: 00007FF755FACCD9 
+ 2: 00007FF756BE1617 
+ 3: 00007FF75655E7C6 
+ 4: 00007FF75638FD5B 
+ 5: 00007FF75638FA91 
+ 6: 00007FF756389F94 
+ 7: 00007FF7563ACEA4 
+ 8: 00007FF7563ACB86 
+ 9: 00007FF756415DBA 
+10: 00007FF7563B7D9C 
+11: 00007FF7563B832F 
+12: 00007FF7563F105A 
+13: 00007FF7563C6D1B 
+14: 00007FF75643ED26 
+15: 00007FF75643DA50 
+16: 00007FF75643B84A 
+17: 00007FF756B5528F 
+18: 00007FF75643D32B 
+19: 00007FF75728A80F 
+20: 00007FF755F07A8E 
+21: 00007FF756C36A56 
+22: 00007FF757D4F276 
+23: 00007FFF63857374 
+24: 00007FFF6559CC91 

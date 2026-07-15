@@ -1,0 +1,3 @@
+{
+  "/api/coze/oauth/disconnect/route": "app/api/coze/oauth/disconnect/route.js"
+}

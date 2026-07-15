@@ -1,0 +1,74 @@
+﻿▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.production
+
+  Creating an optimized production build ...
+  Using external babel configuration from D:\wwwroot\CozeZnt\project_20260611_133006\projects\.babelrc
+✓ Compiled successfully in 53s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/52) ...
+  Generating static pages using 7 workers (13/52) 
+  Generating static pages using 7 workers (26/52) 
+  Generating static pages using 7 workers (39/52) 
+✓ Generating static pages using 7 workers (52/52) in 1989.6ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /activate
+├ ○ /admin
+├ ○ /admin/announcements
+├ ○ /admin/categories
+├ ○ /admin/codes
+├ ƒ /admin/codes/[batchId]
+├ ○ /admin/credits
+├ ○ /admin/encryption
+├ ○ /admin/logs
+├ ○ /admin/oauth
+├ ○ /admin/tools
+├ ○ /admin/users
+├ ƒ /api/activate
+├ ƒ /api/admin/activation-codes
+├ ƒ /api/admin/admin-ids
+├ ƒ /api/admin/announcements
+├ ƒ /api/admin/audit-logs
+├ ƒ /api/admin/categories
+├ ƒ /api/admin/check
+├ ƒ /api/admin/credits
+├ ƒ /api/admin/encryption-key
+├ ƒ /api/admin/init-demo
+├ ƒ /api/admin/oauth-config
+├ ƒ /api/admin/users
+├ ƒ /api/admin/workflow-configs
+├ ƒ /api/announcements
+├ ƒ /api/audit-logs
+├ ƒ /api/auth/login
+├ ƒ /api/auth/register
+├ ƒ /api/auth/session
+├ ƒ /api/coze/access-token
+├ ƒ /api/coze/oauth/authorize
+├ ƒ /api/coze/oauth/callback
+├ ƒ /api/coze/oauth/disconnect
+├ ƒ /api/credits
+├ ƒ /api/supabase-config
+├ ƒ /api/tools
+├ ƒ /api/tools/[id]
+├ ƒ /api/upload/image
+├ ƒ /api/user/status
+├ ƒ /api/workflow/list
+├ ƒ /api/workflow/run
+├ ƒ /api/workflow/stream
+├ ƒ /api/workflow/task/run
+├ ƒ /api/workflow/task/status
+├ ○ /dashboard
+├ ○ /login
+├ ○ /oauth-proxy
+├ ○ /robots.txt
+├ ○ /tools
+└ ƒ /tools/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

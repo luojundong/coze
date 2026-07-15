@@ -1,0 +1,348 @@
+<view class="tool-detail-page">
+  <!-- 加载中 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{errorMsg || !tool}}">
+    <text class="error-icon">❌</text>
+    <text class="error-text">{{errorMsg || '工具不存在或加载失败'}}</text>
+    <view class="error-back-btn" bindtap="goBack">
+      <text>← 返回工具列表</text>
+    </view>
+  </view>
+
+  <!-- 工具头部（激活和未激活都显示） -->
+  <block wx:elif="{{tool}}">
+    <view class="tool-header">
+      <view class="tool-icon-wrap">
+        <image class="tool-icon" wx:if="{{tool.icon_url}}" src="{{tool.icon_url}}" mode="aspectFit" />
+        <view class="tool-icon-default" wx:else>
+          <text>{{tool.type === 'bot' ? '🤖' : '⚡'}}</text>
+        </view>
+      </view>
+      <view class="tool-info">
+        <view class="tool-name-row">
+          <text class="tool-name">{{tool.name}}</text>
+          <view class="tool-badges">
+            <text class="badge badge-connected" wx:if="{{toolActivated && cozeConnected && tool.type === 'bot'}}">Coze 已连接</text>
+            <view class="badge badge-connect-btn" wx:if="{{toolActivated && !cozeConnected && tool.type === 'bot'}}" bindtap="connectCoze">
+              <text>连接 Coze</text>
+            </view>
+          </view>
+        </view>
+        <text class="tool-desc" wx:if="{{tool.description}}">{{tool.description}}</text>
+      </view>
+      <view class="badge badge-tutorial" wx:if="{{tool.tutorial}}" bindtap="showTutorial">
+        <text>📖 使用教程</text>
+      </view>
+    </view>
+
+    <!-- ========== 未激活 - 内嵌激活面板（和 web 端一致） ========== -->
+    <view class="activation-panel" wx:if="{{!toolActivated}}">
+      <view class="activation-card">
+        <view class="activation-icon-wrap">
+          <text class="activation-icon">🔒</text>
+        </view>
+        <text class="activation-title">工具未激活</text>
+        <text class="activation-desc">此工具需要激活码才能使用，请输入您获取的激活码</text>
+        
+        <!-- 激活成功提示 -->
+        <view class="activation-success" wx:if="{{activationSuccess}}">
+          <text class="success-icon">✅</text>
+          <text class="success-text">激活成功！</text>
+        </view>
+
+        <!-- 激活码输入 -->
+        <block wx:else>
+          <view class="activation-input-wrap">
+            <input 
+              class="activation-input" 
+              type="text"
+              value="{{activationCode}}"
+              bindinput="onActivationCodeChange"
+              placeholder="请输入激活码"
+              disabled="{{activating}}"
+              focus="{{true}}"
+            />
+            <text class="activation-error" wx:if="{{activationError}}">{{activationError}}</text>
+          </view>
+          <view class="activation-btn {{activating || !activationCode ? 'disabled' : ''}}" bindtap="handleActivate">
+            <text>{{activating ? '激活中...' : '激活'}}</text>
+          </view>
+        </block>
+
+        <view class="activation-back" bindtap="goBack">
+          <text>← 返回工具列表</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 已激活 - 主界面 ========== -->
+    <block wx:if="{{toolActivated}}">
+      <!-- Bot 不可用提示 - 区分 Coze 未连接 vs 真正不可用 -->
+      <view class="coze-alert alert-error" wx:if="{{!botAvailable && !cozeConnected && tool.type === 'bot'}}">
+        <text class="alert-icon">⚠️</text>
+        <text class="alert-text">Coze 账户未连接或 Token 已过期，请先完成 Coze 授权后再使用对话功能</text>
+        <view class="alert-action" bindtap="connectCoze">
+          <text>连接 Coze</text>
+        </view>
+      </view>
+      <view class="coze-alert alert-error" wx:elif="{{!botAvailable && tool.type === 'bot'}}">
+        <text class="alert-icon">🚫</text>
+        <text class="alert-text">此智能体暂不可用（可能未发布或已被删除），请稍后再试</text>
+      </view>
+
+      <!-- Coze 未连接提示（智能体本身可用） -->
+      <view class="coze-alert alert-warning" wx:elif="{{!cozeConnected && tool.type === 'bot' && botAvailable}}">
+        <text class="alert-icon">⚠️</text>
+        <text class="alert-text">请先连接 Coze 账户，将使用您的 Coze 额度调用此工具</text>
+        <view class="alert-action" bindtap="connectCoze">
+          <text>连接 Coze</text>
+        </view>
+      </view>
+
+      <!-- 聊天消息区域 -->
+      <scroll-view class="chat-area" scroll-y scroll-top="{{scrollTop}}" enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollIntoViewId}}" scroll-with-animation>
+        <view class="message-list">
+          <!-- 工具描述（消息为空时显示） -->
+          <view class="tool-desc-box" wx:if="{{tool.description && messages.length <= 1}}">
+            <text>{{tool.description}}</text>
+          </view>
+
+          <view wx:for="{{messages}}" wx:key="id" class="message {{item.role}}" id="msg-{{item.id}}">
+            <view class="message-avatar" wx:if="{{item.role === 'assistant' || item.role === 'system'}}">
+              <text>{{tool.type === 'bot' ? '🤖' : '⚡'}}</text>
+            </view>
+            <view class="message-body">
+              <!-- 系统消息（开场白） -->
+              <view class="message-bubble system-msg" wx:if="{{item.role === 'system'}}">
+                <block wx:if="{{item.parsed && item.parsed.length > 0}}">
+                  <block wx:for="{{item.parsed}}" wx:for-item="el" wx:key="index">
+                    <text wx:if="{{el.type === 'text'}}" class="message-text">{{el.content}}</text>
+                    <view wx:elif="{{el.type === 'image'}}" class="msg-image-wrap">
+                      <image src="{{el.url}}" mode="widthFix" class="msg-image" bindtap="previewImage" data-url="{{el.url}}" />
+                    </view>
+                    <view wx:elif="{{el.type === 'link'}}" class="msg-link" hover-class="msg-link-hover" hover-stay-time="100" catchtap="openLink" bindlongpress="copyLinkPermanent" data-full-url="{{el.url}}" data-content="{{el.content}}">
+                      <text class="msg-link-text">{{el.content}}</text>
+                      <view class="msg-link-copy" catchtap="copyLink" data-url="{{el.url}}">
+                        <text>复制链接</text>
+                      </view>
+                    </view>
+                  </block>
+                </block>
+                <text wx:else class="message-text">{{item.content}}</text>
+              </view>
+
+              <!-- 用户消息 -->
+              <view class="message-bubble user-msg" wx:if="{{item.role === 'user'}}">
+                <text class="message-text">{{item.content}}</text>
+              </view>
+
+              <!-- 助手消息 -->
+              <block wx:if="{{item.role === 'assistant'}}">
+                <view class="message-bubble assistant-msg">
+                  <!-- 有解析内容 → 始终使用富文本渲染（流式或非流式） -->
+                  <block wx:if="{{item.parsed && item.parsed.length > 0}}">
+                    <block wx:for="{{item.parsed}}" wx:for-item="el" wx:key="index">
+                      <text wx:if="{{el.type === 'text'}}" class="message-text">{{el.content}}</text>
+                      <view wx:elif="{{el.type === 'image'}}" class="msg-image-wrap">
+                        <image src="{{el.url}}" mode="widthFix" class="msg-image" bindtap="previewImage" data-url="{{el.url}}" />
+                        <text class="msg-image-tip">点击查看原图</text>
+                      </view>
+                    <view wx:elif="{{el.type === 'link'}}" class="msg-link" hover-class="msg-link-hover" hover-stay-time="100" catchtap="openLink" bindlongpress="copyLinkPermanent" data-full-url="{{el.url}}" data-content="{{el.content}}">
+                      <text class="msg-link-text" space="nbsp">{{el.content}}</text>
+                      <view class="msg-link-copy" catchtap="copyLink" data-url="{{el.url}}">
+                        <text>复制链接</text>
+                      </view>
+                    </view>
+                    </block>
+                    <!-- 流式状态：在内容末尾显示闪烁光标 -->
+                    <view class="streaming-indicator" wx:if="{{item.isStreaming && item.content}}">
+                      <view class="dot"></view><view class="dot"></view><view class="dot"></view>
+                    </view>
+                  </block>
+                  <!-- 无 parsed → 纯文本 + 加载状态 -->
+                  <block wx:else>
+                    <text class="message-text">{{item.content || '思考中...'}}</text>
+                    <view class="streaming-indicator" wx:if="{{item.isStreaming && item.content}}">
+                      <view class="dot"></view><view class="dot"></view><view class="dot"></view>
+                    </view>
+                    <view class="streaming-spinner" wx:if="{{!item.content}}">
+                      <view class="loading-spinner small"></view>
+                    </view>
+                  </block>
+                </view>
+                <!-- 复制按钮 -->
+                <view class="message-actions" wx:if="{{item.content && !item.isStreaming}}">
+                  <text class="copy-btn" bindtap="copyMessage" data-content="{{item.content}}">复制</text>
+                </view>
+              </block>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 清除对话历史 -->
+      <view class="clear-history-bar" wx:if="{{messages.length > 1 && !running}}">
+        <view class="clear-history-btn" bindtap="clearChatHistory">
+          <text>🗑 清除对话</text>
+        </view>
+      </view>
+
+      <!-- 推荐问题 -->
+      <view class="suggested-questions" wx:if="{{suggestedQuestions.length > 0 && messages.length <= 1 && !running}}">
+        <text class="sq-title">推荐问题</text>
+        <view class="sq-list">
+          <view class="sq-item" wx:for="{{suggestedQuestions}}" wx:key="index"
+                bindtap="onSuggestedQuestion" data-question="{{item}}">
+            <text>{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- ========== 快捷参数表单（独立区域，可单独滚动） ========== -->
+      <scroll-view class="param-form-scroll" scroll-y wx:if="{{tool.parameters_schema && tool.parameters_schema.length > 0 && tool.type === 'bot'}}">
+        <view class="param-form">
+          <view class="param-form-header">
+            <text class="param-form-title">⚡ 快捷输入</text>
+            <text class="param-form-reset" bindtap="resetParamForm">重置</text>
+          </view>
+          <view class="param-form-grid">
+            <block wx:for="{{tool.parameters_schema}}" wx:key="name">
+              <view class="param-field" style="width: 100%">
+                <text class="param-label">{{item.label}}<text wx:if="{{item.required}}" class="param-required">*</text></text>
+                <!-- 单行文本 -->
+                <block wx:if="{{!item.type || item.type === 'text'}}">
+                  <textarea
+                    class="param-input"
+                    value="{{paramValues[item.name] || item.defaultValue || ''}}"
+                    bindinput="onParamValueChange"
+                    data-name="{{item.name}}"
+                    placeholder="{{item.placeholder || '请输入' + item.label}}"
+                    placeholder-style="font-size:24rpx;color:#9CA3AF;"
+                    auto-height="{{true}}"
+                    maxlength="2000"
+                    show-confirm-bar="{{false}}"
+                  />
+                </block>
+                <!-- 多行文本 -->
+                <block wx:if="{{item.type === 'textarea'}}">
+                  <textarea
+                    class="param-textarea"
+                    value="{{paramValues[item.name] || item.defaultValue || ''}}"
+                    bindinput="onParamValueChange"
+                    data-name="{{item.name}}"
+                    placeholder="{{item.placeholder || '请输入' + item.label}}"
+                    placeholder-style="font-size:24rpx;color:#9CA3AF;"
+                    auto-height="{{true}}"
+                    maxlength="2000"
+                    show-confirm-bar="{{false}}"
+                  />
+                </block>
+                <!-- 图片 -->
+                <block wx:if="{{item.type === 'image'}}">
+                  <view class="param-media-row">
+                    <input
+                      class="param-input param-input-flex"
+                      type="text"
+                      value="{{paramValues[item.name] || item.defaultValue || ''}}"
+                      bindinput="onParamValueChange"
+                      data-name="{{item.name}}"
+                      placeholder="{{item.placeholder || '图片URL'}}"
+                    />
+                    <view class="param-upload-btn" bindtap="onMediaUpload" data-name="{{item.name}}" data-type="image">
+                      <text>+上传</text>
+                    </view>
+                  </view>
+                  <image wx:if="{{paramValues[item.name]}}" src="{{paramValues[item.name]}}" mode="aspectFit" class="param-preview-img" />
+                </block>
+                <!-- 音频 -->
+                <block wx:if="{{item.type === 'audio'}}">
+                  <view class="param-media-row">
+                    <input
+                      class="param-input param-input-flex"
+                      type="text"
+                      value="{{paramValues[item.name] || item.defaultValue || ''}}"
+                      bindinput="onParamValueChange"
+                      data-name="{{item.name}}"
+                      placeholder="{{item.placeholder || '音频URL'}}"
+                    />
+                    <view class="param-upload-btn" bindtap="onMediaUpload" data-name="{{item.name}}" data-type="audio">
+                      <text>+上传</text>
+                    </view>
+                  </view>
+                  <text wx:if="{{paramValues[item.name]}}" class="param-preview-hint">🎵 音频文件: {{paramValues[item.name]}}</text>
+                </block>
+                <!-- 视频 -->
+                <block wx:if="{{item.type === 'video'}}">
+                  <view class="param-media-row">
+                    <input
+                      class="param-input param-input-flex"
+                      type="text"
+                      value="{{paramValues[item.name] || item.defaultValue || ''}}"
+                      bindinput="onParamValueChange"
+                      data-name="{{item.name}}"
+                      placeholder="{{item.placeholder || '视频URL'}}"
+                    />
+                    <view class="param-upload-btn" bindtap="onMediaUpload" data-name="{{item.name}}" data-type="video">
+                      <text>+上传</text>
+                    </view>
+                  </view>
+                  <text wx:if="{{paramValues[item.name]}}" class="param-preview-hint">🎬 视频文件: {{paramValues[item.name]}}</text>
+                </block>
+              </view>
+            </block>
+          </view>
+          <view class="param-send-btn {{running ? 'disabled' : ''}}" bindtap="sendParamForm">
+            <text>{{running ? '发送中...' : '点击发送'}}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 输入区域 -->
+      <view class="input-area">
+        <textarea class="chat-input"
+               placeholder="{{!botAvailable && tool.type === 'bot' ? '智能体暂不可用' : (tool.type === 'bot' ? '输入消息...' : '输入参数...')}}"
+               value="{{inputValue}}"
+               bindinput="onInputChange"
+               disabled="{{running || (!cozeConnected && tool.type === 'bot') || (!botAvailable && tool.type === 'bot')}}"
+               auto-height="{{true}}"
+               maxlength="2000"
+               show-confirm-bar="{{false}}" />
+        <!-- 停止按钮：生成中时显示，替代发送按钮 -->
+        <view class="stop-btn" wx:if="{{running}}" bindtap="stopGeneration">
+          <text>■ 停止</text>
+        </view>
+        <view class="send-btn {{running || (!cozeConnected && tool.type === 'bot') || (!botAvailable && tool.type === 'bot') || !inputValue ? 'disabled' : ''}}"
+              wx:else
+              bindtap="{{tool.type === 'bot' ? 'sendChat' : 'handleRunWorkflow'}}">
+          <text>{{running ? '发送中...' : '发送'}}</text>
+        </view>
+      </view>
+
+      <!-- 底部提示 -->
+      <view class="bottom-tip" wx:if="{{tool.type === 'bot'}}">
+        <text>使用您的 Coze 额度 · 对话内容由 AI 生成，仅供参考</text>
+      </view>
+    </block>
+  </block>
+
+  <!-- 使用教程弹窗 -->
+  <view class="tutorial-overlay" wx:if="{{showTutorialModal && tool.tutorial}}" bindtap="closeTutorial">
+    <view class="tutorial-modal" catchtap="">
+      <view class="tutorial-modal-header">
+        <text class="tutorial-modal-title">使用教程</text>
+        <view class="tutorial-modal-close" bindtap="closeTutorial">
+          <text>✕</text>
+        </view>
+      </view>
+      <scroll-view class="tutorial-content" scroll-y>
+        <rich-text nodes="{{tutorialContent}}"></rich-text>
+      </scroll-view>
+    </view>
+  </view>
+
+</view>

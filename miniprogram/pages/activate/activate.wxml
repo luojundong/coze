@@ -1,0 +1,38 @@
+<view class="container activate-page">
+  <!-- 成功状态 -->
+  <view class="success-area" wx:if="{{success}}">
+    <view class="success-icon">✓</view>
+    <text class="success-title">激活成功</text>
+    <text class="success-desc" wx:if="{{toolName}}">已激活工具：{{toolName}}</text>
+    <text class="success-desc" hidden="{{true}}">已获得 {{credits}} 积分，可以开始使用AI工具了</text>
+    <button class="btn-primary" bindtap="goHome" style="margin-top:48rpx">开始使用</button>
+  </view>
+
+  <!-- 输入激活码 -->
+  <view class="activate-area" wx:else>
+    <!-- Logo 区域 -->
+    <view class="logo-area">
+      <view class="logo-icon">
+        <text class="logo-text">🔑</text>
+      </view>
+      <text class="app-name">激活账号</text>
+      <text class="app-desc">请输入激活码以激活您的账号</text>
+    </view>
+
+    <!-- 表单区域 -->
+    <view class="form-area">
+      <view class="form-group">
+        <text class="form-label">激活码</text>
+        <input class="input input-activate" placeholder="请输入激活码" value="{{code}}" bindinput="onCodeInput" />
+      </view>
+
+      <view class="error-msg" wx:if="{{errorMsg}}">
+        <text>{{errorMsg}}</text>
+      </view>
+
+      <button class="btn-primary" bindtap="handleActivate" disabled="{{loading || !code}}">
+        {{loading ? '激活中...' : '激活'}}
+      </button>
+    </view>
+  </view>
+</view>

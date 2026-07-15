@@ -1,0 +1,72 @@
+<!-- 分享推广页 -->
+<view class="share-page">
+  <view class="share-header">
+    <text class="share-header-title">🔗 分享推广</text>
+    <text class="share-header-sub">邀请好友加入，获取推广奖励</text>
+  </view>
+
+  <!-- 分享链接卡片 -->
+  <view class="share-card">
+    <view class="share-card-title">📎 获取分享链接</view>
+    <view class="share-card-desc">复制链接发送给好友，好友注册后即可成为您的下线</view>
+    <view class="share-card-action">
+      <view class="share-link-btn" bindtap="getShareLink">
+        <text>{{linkCopied ? '✅ 已复制' : '📋 复制分享链接'}}</text>
+      </view>
+      <view class="share-poster-btn" bindtap="generatePoster">
+        <text>🖼️ 生成分享海报</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分享统计 -->
+  <view class="share-stats-card" wx:if="{{referralStats}}">
+    <view class="stats-row">
+      <view class="stats-item">
+        <text class="stats-num">{{referralStats.referralCount || 0}}</text>
+        <text class="stats-label">已邀请</text>
+      </view>
+    </view>
+    <!-- 下线列表 -->
+    <view class="downline-list" wx:if="{{referralStats.referrals && referralStats.referrals.length > 0}}">
+      <view class="downline-title">我的下线</view>
+      <view class="downline-item" wx:for="{{referralStats.referrals}}" wx:key="userId">
+        <text class="downline-name">{{item.phone || item.email || item.userId}}</text>
+        <text class="downline-status {{item.status === 'active' ? 'status-active' : 'status-pending'}}">
+          {{item.status === 'active' ? '已激活' : '待激活'}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 非会员提示 -->
+  <view class="share-not-member" wx:if="{{!isMember}}">
+    <view class="not-member-card">
+      <text class="not-member-icon">🔒</text>
+      <text class="not-member-title">分享功能需要会员身份</text>
+      <text class="not-member-desc">升级会员后即可使用分享推广功能，获取专属分享链接和海报</text>
+    </view>
+  </view>
+</view>
+
+<!-- 隐藏 Canvas 用于海报绘制 -->
+<canvas 
+  type="2d" 
+  id="posterCanvas" 
+  style="position:fixed;left:-9999px;top:-9999px;width:600px;height:900px;"
+  class="poster-canvas"
+></canvas>
+
+<!-- 海报预览弹窗 -->
+<view class="poster-overlay" wx:if="{{showPoster}}" bindtap="closePoster">
+  <view class="poster-modal" catchtap="noop">
+    <view class="poster-close" bindtap="closePoster">✕</view>
+    <image class="poster-image" src="{{posterPath}}" mode="widthFix" show-menu-by-longpress="{{true}}" />
+    <view class="poster-actions">
+      <button class="poster-btn poster-btn-save" bindtap="savePoster">
+        💾 保存到相册
+      </button>
+    </view>
+    <view class="poster-tip">长按图片可转发给好友</view>
+  </view>
+</view>

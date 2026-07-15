@@ -1,0 +1,105 @@
+.login-page {
+  padding-top: 80rpx;
+}
+
+.logo-area {
+  text-align: center;
+  margin-bottom: 64rpx;
+}
+
+.logo-icon {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 28rpx;
+  background: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24rpx;
+}
+
+.logo-text {
+  color: #FFFFFF;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.app-name {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+}
+
+.app-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #6B7280;
+}
+
+.form-area {
+  margin-top: 32rpx;
+}
+
+.form-group {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 12rpx;
+}
+
+/* 登录页输入框加宽、字体加大 */
+.input-login {
+  padding: 24rpx;
+  font-size: 32rpx;
+  height: auto;
+  line-height: 1.5;
+}
+
+.error-msg {
+  background: #FEF2F2;
+  color: #991B1B;
+  padding: 16rpx 24rpx;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  margin-bottom: 24rpx;
+}
+
+.switch-mode {
+  text-align: center;
+  margin-top: 32rpx;
+  color: #2563EB;
+  font-size: 28rpx;
+}
+
+/* 登录方式 Tab 切换 */
+.login-tabs {
+  display: flex;
+  background: #F3F4F6;
+  border-radius: 12rpx;
+  padding: 6rpx;
+  margin-bottom: 32rpx;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #6B7280;
+  transition: all 0.2s;
+}
+
+.tab-active {
+  background: #FFFFFF;
+  color: #111827;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}

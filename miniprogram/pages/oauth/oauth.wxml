@@ -1,0 +1,70 @@
+<!-- pages/oauth/oauth.wxml - Coze OAuth 授权引导页 -->
+<view class="container login-page">
+  <!-- 加载中 -->
+  <view wx:if="{{step === 'loading' || step === 'copying'}}" class="state-area">
+    <view class="spinner"></view>
+    <text class="title">正在准备授权...</text>
+  </view>
+
+  <!-- 复制成功 - 引导用户 -->
+  <block wx:if="{{step === 'copied'}}">
+    <!-- Logo 区域 -->
+    <view class="logo-area">
+      <view class="logo-icon">
+        <text class="logo-text">Coze</text>
+      </view>
+      <text class="app-name">连接 Coze 账户</text>
+      <text class="app-desc">授权链接已复制到剪贴板</text>
+    </view>
+
+    <!-- 操作步骤 -->
+    <view class="form-area">
+      <text class="form-label">请按以下步骤完成连接：</text>
+
+      <view class="steps">
+        <view class="step-item">
+          <view class="step-num">1</view>
+          <text class="step-text">打开手机浏览器（Safari/Chrome等）</text>
+        </view>
+        <view class="step-item">
+          <view class="step-num">2</view>
+          <text class="step-text">在地址栏长按粘贴链接，访问并登录 Coze 账户</text>
+        </view>
+        <view class="step-item">
+          <view class="step-num">3</view>
+          <text class="step-text">在 Coze 授权页点击「授权」</text>
+        </view>
+        <view class="step-item">
+          <view class="step-num">4</view>
+          <text class="step-text">授权成功后，返回小程序点击下方按钮</text>
+        </view>
+      </view>
+
+      <!-- 授权URL预览 -->
+      <view class="url-preview">
+        <text class="url-label">授权链接</text>
+        <text class="url-text">{{authUrl.substring(0, 60)}}...</text>
+      </view>
+
+      <view class="btn-group">
+        <button class="btn-primary" bindtap="copyLink">重新复制链接</button>
+        <button class="btn-secondary" bindtap="goBackDone">我已完成授权</button>
+      </view>
+    </view>
+  </block>
+
+  <!-- 等待状态 -->
+  <view wx:if="{{step === 'waiting'}}" class="state-area">
+    <text class="title">请手动操作</text>
+    <text class="desc">需要复制以下链接到浏览器打开：</text>
+
+    <view class="url-box">
+      <text class="url-text-full selectable">{{authUrl}}</text>
+    </view>
+
+    <view class="btn-group">
+      <button class="btn-primary" bindtap="copyLink">复制授权链接</button>
+      <button class="btn-secondary" bindtap="goBackDone">我已完成授权</button>
+    </view>
+  </view>
+</view>

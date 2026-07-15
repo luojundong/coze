@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/upload/media": {
+      "maxDuration": 180
+    },
+    "/api/workflow/run": {
+      "maxDuration": 120
+    },
+    "/api/workflow/stream": {
+      "maxDuration": 300
+    },
+    "/api/workflow/task/run": {
+      "maxDuration": 300
+    },
+    "/api/workflow/task/status": {
+      "maxDuration": 15
+    }
+  }
+}

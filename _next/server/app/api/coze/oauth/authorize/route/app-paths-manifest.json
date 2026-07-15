@@ -1,0 +1,3 @@
+{
+  "/api/coze/oauth/authorize/route": "app/api/coze/oauth/authorize/route.js"
+}

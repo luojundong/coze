@@ -1,0 +1,180 @@
+<view class="dashboard" wx:if="{{!loading}}">
+  <!-- ===== 用户状态卡片 ===== -->
+  <view class="status-card">
+    <view class="status-row">
+      <view class="user-info">
+        <view class="avatar-sm">
+          <text>{{userInfo.phone ? userInfo.phone[0] : (userInfo.email ? userInfo.email[0].toUpperCase() : '?')}}</text>
+        </view>
+        <view class="user-meta">
+          <text class="user-email">{{userInfo.phone || userInfo.email || '未登录'}}</text>
+          <view class="status-tags">
+            <text class="tag {{activated ? 'tag-green' : 'tag-orange'}}">{{activated ? '已激活' : '未激活'}}</text>
+            <text class="tag {{cozeConnected ? 'tag-green' : 'tag-orange'}}">{{cozeConnected ? 'Coze已连接' : 'Coze未连接'}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="credits-brief" hidden="{{true}}">
+        <text class="credits-num">{{credits.balance}}</text>
+        <text class="credits-label">积分</text>
+      </view>
+    </view>
+
+    <!-- 未激活/未连接Coze 的引导操作 -->
+    <view class="guide-actions" wx:if="{{!activated || !cozeConnected}}">
+      <view class="guide-btn guide-btn-primary" wx:if="{{!activated}}" bindtap="goActivate">
+        <text>🔑 激活账号</text>
+      </view>
+      <view class="guide-btn guide-btn-primary" wx:if="{{activated && !cozeConnected}}" bindtap="connectCoze">
+        <text>🔗 连接Coze</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 公告轮播 ===== -->
+  <view class="section" wx:if="{{announcements.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">📢 系统公告</text>
+    </view>
+    <view class="announcement-list">
+      <view
+        class="announcement-item"
+        wx:for="{{announcements}}"
+        wx:key="id"
+        bindtap="showAnnouncementDetail"
+        data-id="{{item.id}}"
+        data-title="{{item.title}}"
+        data-content="{{item.content}}"
+        data-time="{{item.created_at}}"
+      >
+        <view class="announcement-header">
+          <view class="pin-badge" wx:if="{{item.is_pinned}}">
+            <text>置顶</text>
+          </view>
+          <text class="announcement-title">{{item.title}}</text>
+        </view>
+        <text class="announcement-content">{{item.plainContent}}</text>
+        <view class="announcement-footer">
+          <text class="announcement-time">{{item.created_at}}</text>
+          <text class="announcement-more">查看详情 ›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 公告详情弹窗 -->
+  <view class="announce-overlay" wx:if="{{showAnnounceDetail}}" bindtap="closeAnnounceDetail">
+    <view class="announce-modal" catchtap="noop">
+      <view class="announce-modal-header">
+        <text class="announce-modal-title">{{announceDetail.title}}</text>
+        <view class="announce-modal-close" bindtap="closeAnnounceDetail">✕</view>
+      </view>
+      <scroll-view class="announce-modal-body" scroll-y>
+        <text class="announce-detail-time">{{announceDetail.time}}</text>
+        <block wx:for="{{announceDetailBlocks}}" wx:key="index">
+          <text wx:if="{{item.type === 'text'}}" class="announce-detail-text">{{item.text}}</text>
+          <text wx:elif="{{item.type === 'link'}}" class="announce-detail-link" bindtap="openLink" data-url="{{item.url}}">{{item.text}}</text>
+          <view wx:elif="{{item.type === 'br'}}" class="announce-detail-br"></view>
+          <image wx:elif="{{item.type === 'image'}}" class="announce-detail-image" src="{{item.url}}" mode="widthFix" show-menu-by-longpress lazy-load />
+          <video wx:elif="{{item.type === 'video'}}" class="announce-detail-video" src="{{item.url}}" controls show-center-play-btn enable-progress-gesture />
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- ===== 快捷入口 ===== -->
+  <view class="section quick-entry-section">
+    <view class="quick-entry-row">
+      <view class="quick-entry-item" bindtap="goContactTeacher">
+        <image wx:if="{{homeButtons.contact_teacher.icon}}" class="qe-icon-img" src="{{homeButtons.contact_teacher.icon}}" mode="aspectFit" />
+        <text wx:else class="qe-icon">📞</text>
+        <text class="qe-text">{{homeButtons.contact_teacher.text}}</text>
+      </view>
+      <view class="quick-entry-item" bindtap="goTutorial">
+        <image wx:if="{{homeButtons.tutorial.icon}}" class="qe-icon-img" src="{{homeButtons.tutorial.icon}}" mode="aspectFit" />
+        <text wx:else class="qe-icon">📖</text>
+        <text class="qe-text">{{homeButtons.tutorial.text}}</text>
+      </view>
+      <view class="quick-entry-item" bindtap="goShare">
+        <image wx:if="{{homeButtons.share.icon}}" class="qe-icon-img" src="{{homeButtons.share.icon}}" mode="aspectFit" />
+        <text wx:else class="qe-icon">🔗</text>
+        <text class="qe-text">{{homeButtons.share.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 推荐工具 ===== -->
+  <view class="section" wx:if="{{hotTools.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">🔥 推荐工具</text>
+      <text class="section-more" bindtap="goTools">查看更多 ›</text>
+    </view>
+    <view class="hot-tools-grid">
+      <view
+        class="hot-tool-card fav-tool-card"
+        wx:for="{{hotTools}}"
+        wx:key="id"
+        bindtap="goToolDetail"
+        data-id="{{item.id}}"
+      >
+        <image class="ht-icon" wx:if="{{item.icon_url}}" src="{{item.icon_url}}" mode="aspectFit" />
+        <view class="ht-icon ht-icon-default" wx:else>
+          <text>{{item.type === 'bot' ? '🤖' : '⚡'}}</text>
+        </view>
+        <text class="ht-name">{{item.name}}</text>
+        <text class="ht-desc">{{item.description || ''}}</text>
+        <view class="ht-meta">
+          <text class="ht-type">{{item.type === 'bot' ? '智能体' : '工作流'}}</text>
+          <text class="ht-cost" hidden="{{true}}">{{item.credit_cost}}积分/次</text>
+        </view>
+        <view class="fav-star" catchtap="toggleFavorite" data-id="{{item.id}}" data-favorited="{{false}}">
+          <text>☆</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 收藏工具 ===== -->
+  <view class="section" wx:if="{{favoriteTools.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">⭐ 收藏工具</text>
+      <text class="section-more" bindtap="goTools">更多 ›</text>
+    </view>
+    <view class="hot-tools-grid">
+      <view
+        class="hot-tool-card fav-tool-card"
+        wx:for="{{favoriteTools}}"
+        wx:key="id"
+        bindtap="goToolDetail"
+        data-id="{{item.id}}"
+      >
+        <image class="ht-icon" wx:if="{{item.icon_url}}" src="{{item.icon_url}}" mode="aspectFit" />
+        <view class="ht-icon ht-icon-default" wx:else>
+          <text>{{item.type === 'bot' ? '🤖' : '⚡'}}</text>
+        </view>
+        <text class="ht-name">{{item.name}}</text>
+        <text class="ht-desc">{{item.description || ''}}</text>
+        <view class="ht-meta">
+          <text class="ht-type">{{item.type === 'bot' ? '智能体' : '工作流'}}</text>
+          <text class="ht-cost" hidden="{{true}}">{{item.credit_cost}}积分/次</text>
+        </view>
+        <view class="fav-star" catchtap="toggleFavorite" data-id="{{item.id}}" data-favorited="{{true}}">
+          <text>⭐</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="section empty-section" wx:if="{{hotTools.length === 0 && favoriteTools.length === 0}}">
+    <view class="empty-icon">🎉</view>
+    <text class="empty-text">欢迎来到AI工具平台</text>
+    <text class="empty-sub">激活账号并连接Coze即可开始使用</text>
+  </view>
+</view>
+
+<!-- 加载中 -->
+<view class="loading-full" wx:if="{{loading}}">
+  <view class="loading-spinner"></view>
+  <text>加载中...</text>
+</view>

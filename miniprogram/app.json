@@ -1,0 +1,49 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/activate/activate",
+    "pages/tools/tools",
+    "pages/tool-detail/tool-detail",
+    "pages/profile/profile",
+    "pages/oauth/oauth",
+    "pages/tutorial/tutorial",
+    "pages/share/share",
+    "pages/home-content/home-content"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#2563EB",
+    "navigationBarTitleText": "即豆AI工具平台",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F9FAFB",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#6B7280",
+    "selectedColor": "#2563EB",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/tools/tools",
+        "text": "工具",
+        "iconPath": "images/tool.png",
+        "selectedIconPath": "images/tool-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/user.png",
+        "selectedIconPath": "images/user-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

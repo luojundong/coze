@@ -1,0 +1,85 @@
+/* pages/home-content/home-content.wxss */
+.content-page {
+  min-height: 100vh;
+  background: #F9FAFB;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.content-body {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.cb-text {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: #1F2937;
+  margin: 8rpx 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.cb-link {
+  display: inline;
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: #2563EB;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.cb-br {
+  display: block;
+  height: 12rpx;
+}
+
+.cb-image {
+  display: block;
+  width: 100%;
+  margin: 16rpx 0;
+  border-radius: 12rpx;
+  background: #F3F4F6;
+}
+
+.cb-video {
+  display: block;
+  width: 100%;
+  margin: 16rpx 0;
+  border-radius: 12rpx;
+  background: #000;
+}
+
+.cb-empty {
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 28rpx;
+  padding: 60rpx 0;
+}
+
+.loading-full {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  font-size: 28rpx;
+}
+
+.loading-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 6rpx solid #E5E7EB;
+  border-top-color: #2563EB;
+  border-radius: 50%;
+  margin-bottom: 20rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

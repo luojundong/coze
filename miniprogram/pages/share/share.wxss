@@ -1,0 +1,257 @@
+.share-page {
+  min-height: 100vh;
+  background: #F9FAFB;
+  padding-bottom: 40rpx;
+}
+
+.share-header {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  padding: 48rpx 32rpx 40rpx;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.share-header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.share-header-sub {
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+
+/* 分享链接卡片 */
+.share-card {
+  margin: 24rpx 32rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 28rpx;
+}
+
+.share-card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 8rpx;
+}
+
+.share-card-desc {
+  font-size: 24rpx;
+  color: #6B7280;
+  margin-bottom: 20rpx;
+}
+
+.share-card-action {
+  display: flex;
+  gap: 16rpx;
+}
+
+.share-link-btn, .share-poster-btn {
+  flex: 1;
+  padding: 20rpx 0;
+  border-radius: 12rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.share-link-btn {
+  background: #EEF2FF;
+  border: 1rpx solid #C7D2FE;
+}
+
+.share-link-btn text {
+  color: #4F46E5;
+}
+
+.share-poster-btn {
+  background: #FEF3C7;
+  border: 1rpx solid #FDE68A;
+}
+
+.share-poster-btn text {
+  color: #D97706;
+}
+
+/* 分享统计 */
+.share-stats-card {
+  margin: 0 32rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 28rpx;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #F3F4F6;
+}
+
+.stats-item {
+  text-align: center;
+}
+
+.stats-num {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #2563EB;
+  display: block;
+}
+
+.stats-label {
+  font-size: 24rpx;
+  color: #6B7280;
+}
+
+/* 下线列表 */
+.downline-list {
+  margin-top: 16rpx;
+}
+
+.downline-title {
+  font-size: 24rpx;
+  color: #6B7280;
+  margin-bottom: 12rpx;
+}
+
+.downline-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #F3F4F6;
+}
+
+.downline-item:last-child {
+  border-bottom: none;
+}
+
+.downline-name {
+  font-size: 26rpx;
+  color: #374151;
+}
+
+.downline-status {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.status-active {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.status-pending {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+/* 非会员 */
+.share-not-member {
+  margin: 24rpx 32rpx;
+}
+
+.not-member-card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 60rpx 32rpx;
+  text-align: center;
+}
+
+.not-member-icon {
+  font-size: 64rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.not-member-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2937;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.not-member-desc {
+  font-size: 24rpx;
+  color: #9CA3AF;
+}
+
+/* ===== 海报弹窗 ===== */
+.poster-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-modal {
+  position: relative;
+  width: 90vw;
+  max-width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 60rpx 30rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.poster-close {
+  position: absolute;
+  top: 16rpx;
+  right: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #9CA3AF;
+  background: #F3F4F6;
+  border-radius: 50%;
+}
+
+.poster-image {
+  width: 100%;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.poster-actions {
+  margin-top: 30rpx;
+  width: 100%;
+}
+
+.poster-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.poster-btn-save {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.poster-tip {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #9CA3AF;
+}

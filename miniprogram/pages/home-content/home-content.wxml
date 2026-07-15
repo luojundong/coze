@@ -1,0 +1,18 @@
+<!-- pages/home-content/home-content.wxml -->
+<view class="content-page" wx:if="{{!loading}}">
+  <view class="content-body">
+    <block wx:for="{{blocks}}" wx:key="index">
+      <text wx:if="{{item.type === 'text'}}" class="cb-text">{{item.text}}</text>
+      <text wx:elif="{{item.type === 'link'}}" class="cb-link" bindtap="openLink" data-url="{{item.url}}">{{item.text}}</text>
+      <view wx:elif="{{item.type === 'br'}}" class="cb-br"></view>
+      <image wx:elif="{{item.type === 'image'}}" class="cb-image" src="{{item.url}}" mode="widthFix" show-menu-by-longpress lazy-load />
+      <video wx:elif="{{item.type === 'video'}}" class="cb-video" src="{{item.url}}" controls show-center-play-btn enable-progress-gesture />
+    </block>
+    <view wx:if="{{blocks.length === 0}}" class="cb-empty">暂无内容</view>
+  </view>
+</view>
+
+<view class="loading-full" wx:if="{{loading}}">
+  <view class="loading-spinner"></view>
+  <text>加载中...</text>
+</view>

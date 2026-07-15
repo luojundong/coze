@@ -1,0 +1,144 @@
+<view class="tools-page">
+  <!-- 顶部状态栏 -->
+  <view class="status-bar">
+    <view class="status-item" hidden="{{true}}">
+      <text class="status-label">积分余额</text>
+      <text class="status-value credits">{{credits}}</text>
+    </view>
+    <view class="status-item" wx:if="{{!cozeConnected}}">
+      <view class="connect-btn" bindtap="connectCoze">
+        <text>连接Coze</text>
+      </view>
+    </view>
+    <view class="status-item" wx:else>
+      <text class="coze-connected">Coze已连接 ✓</text>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        value="{{searchQuery}}"
+        placeholder="搜索工具名称或描述..."
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+      <view class="search-clear" wx:if="{{searchQuery}}" bindtap="clearSearch">
+        <text>✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分类导航 -->
+  <view class="category-nav" wx:if="{{categories.length > 0}}">
+    <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="category-list">
+        <view
+          class="category-item {{selectedCategory === '' ? 'category-active' : ''}}"
+          bindtap="onCategoryTap"
+          data-category=""
+        >
+          <text>全部</text>
+        </view>
+        <view
+          class="category-item {{selectedCategory === item ? 'category-active' : ''}}"
+          wx:for="{{categories}}"
+          wx:key="*this"
+          bindtap="onCategoryTap"
+          data-category="{{item}}"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <!-- 清除筛选 -->
+    <view class="filter-clear" wx:if="{{selectedCategory || searchQuery}}" bindtap="clearFilters">
+      <text>清除筛选</text>
+    </view>
+  </view>
+
+  <!-- 结果统计 -->
+  <view class="result-info" wx:if="{{selectedCategory || searchQuery}}">
+    <text wx:if="{{filteredTools.length > 0}}">找到 {{filteredTools.length}} 个工具</text>
+    <text wx:else>未找到匹配的工具</text>
+  </view>
+
+  <!-- 常用工具模块 -->
+  <view class="favorites-section" wx:if="{{favoriteTools.length > 0}}">
+    <view class="fav-header">
+      <text class="fav-star">⭐</text>
+      <text class="fav-title">常用工具</text>
+    </view>
+    <view class="fav-list">
+      <view
+        class="fav-item"
+        wx:for="{{favoriteTools}}"
+        wx:key="id"
+        bindtap="goToolDetail"
+        data-id="{{item.id}}"
+        data-activated="{{item.activated}}"
+      >
+        <text>{{item.type === 'bot' ? '🤖' : '⚡'}}</text>
+        <text class="fav-name">{{item.name}}</text>
+        <view class="fav-unstar" catchtap="toggleFavorite" data-id="{{item.id}}" data-favorited="{{true}}">
+          <text>⭐</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 工具列表 -->
+  <view class="tool-list" wx:if="{{!loading}}">
+    <view
+      class="tool-card {{item.activated ? '' : 'tool-locked'}}"
+      wx:for="{{filteredTools}}"
+      wx:key="id"
+      bindtap="goToolDetail"
+      data-id="{{item.id}}"
+      data-activated="{{item.activated}}"
+    >
+      <view class="tool-icon-wrap">
+        <image class="tool-icon" wx:if="{{item.icon_url}}" src="{{item.icon_url}}" mode="aspectFit" />
+        <view class="tool-icon-default" wx:else>
+          <text>{{item.type === 'bot' ? '🤖' : '⚡'}}</text>
+        </view>
+        <view class="lock-badge" wx:if="{{!item.activated}}">
+          <text>🔒</text>
+        </view>
+      </view>
+      <view class="tool-info">
+        <text class="tool-name">{{item.name}}</text>
+        <text class="tool-desc" wx:if="{{item.description}}">{{item.description}}</text>
+      </view>
+      <view class="tool-meta">
+        <view class="tool-fav-btn" catchtap="toggleFavorite" data-id="{{item.id}}" data-favorited="{{item.is_favorited}}">
+          <text>{{item.is_favorited ? '⭐' : '☆'}}</text>
+        </view>
+        <view class="tool-type-badge" wx:if="{{item.activated}}">
+          <text>{{item.type === 'bot' ? '智能体' : '工作流'}}</text>
+        </view>
+        <view class="tool-category-badge" wx:if="{{item.category}}">
+          <text>{{item.category}}</text>
+        </view>
+        <view class="tool-locked-badge" wx:else>
+          <text>未激活</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{filteredTools.length === 0 && tools.length === 0}}">
+      <view class="empty-icon">🔧</view>
+      <text class="empty-text">暂无可用工具</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+</view>

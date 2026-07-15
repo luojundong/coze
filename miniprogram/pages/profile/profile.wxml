@@ -1,0 +1,156 @@
+<view class="profile-page" wx:if="{{!loading}}">
+  <!-- 用户信息 -->
+  <view class="profile-header">
+    <view class="avatar">
+      <text class="avatar-text">{{userInfo.phone ? userInfo.phone[0] : (userInfo.email ? userInfo.email[0] : '?')}}</text>
+    </view>
+    <text class="user-email">{{userInfo.phone || userInfo.email || '未登录'}}</text>
+    <view class="status-tags">
+      <view class="badge {{activated ? 'badge-success' : 'badge-warning'}}">
+        {{activated ? '已激活' : '未激活'}}
+      </view>
+      <view class="badge {{cozeConnected ? 'badge-success' : 'badge-warning'}}">
+        {{cozeConnected ? 'Coze已连接' : 'Coze未连接'}}
+      </view>
+      <view wx:if="{{membership && membership.isMember}}" class="badge badge-vip">
+        会员
+      </view>
+    </view>
+  </view>
+
+  <!-- 上级推荐人 -->
+  <view class="card referrer-card" wx:if="{{referrer}}">
+    <view class="referrer-title">
+      <text class="referrer-label">👤 推荐人</text>
+    </view>
+    <view class="referrer-info">
+      <text class="referrer-name">{{referrer.displayName}}</text>
+    </view>
+  </view>
+
+  <!-- 积分信息 -->
+  <view class="card credits-card" hidden="{{true}}">
+    <view class="credits-main">
+      <text class="credits-label">积分余额</text>
+      <text class="credits-value">{{credits.balance}}</text>
+    </view>
+    <view class="credits-detail">
+      <view class="credits-item">
+        <text class="credits-item-label">累计充值</text>
+        <text class="credits-item-value">{{credits.totalGranted}}</text>
+      </view>
+      <view class="credits-item">
+        <text class="credits-item-label">累计消耗</text>
+        <text class="credits-item-value">{{credits.totalConsumed}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分享模块（仅会员可见） -->
+  <view class="card referral-card" wx:if="{{membership && membership.isMember}}">
+    <view class="referral-header">
+      <text class="referral-title">📢 分享推广</text>
+      <view class="referral-count" wx:if="{{referralStats}}">
+        <text>已推广 {{referralStats.referralCount}} 人</text>
+      </view>
+    </view>
+    <view class="referral-actions">
+      <view class="referral-btn" bindtap="getReferralLink">
+        <text>📎 获取分享链接/海报</text>
+      </view>
+    </view>
+    <!-- 下线列表 -->
+    <view class="referral-list" wx:if="{{referralStats && referralStats.referrals && referralStats.referrals.length > 0}}">
+      <view class="referral-list-title">我的下线</view>
+      <view class="referral-item" wx:for="{{referralStats.referrals}}" wx:key="userId">
+        <text class="referral-item-name">{{item.phone || item.email || item.userId}}</text>
+        <text class="referral-item-status">{{item.status === 'active' ? '已激活' : '待激活'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作列表 -->
+  <view class="action-list">
+    <!-- 最近调用 -->
+    <view class="action-item" bindtap="showRecentLogs">
+      <text class="action-icon">📋</text>
+      <text class="action-text">最近调用</text>
+      <text class="action-arrow">›</text>
+    </view>
+
+    <!-- 未激活时显示激活入口 -->
+    <view class="action-item" wx:if="{{!activated}}" bindtap="goActivate">
+      <text class="action-icon">🔑</text>
+      <text class="action-text">激活账号</text>
+      <text class="action-arrow">›</text>
+    </view>
+
+    <!-- Coze连接 -->
+    <view class="action-item" wx:if="{{!cozeConnected}}" bindtap="connectCoze">
+      <text class="action-icon">🔗</text>
+      <text class="action-text">连接Coze账户</text>
+      <text class="action-arrow">›</text>
+    </view>
+    <view class="action-item" wx:if="{{cozeConnected}}" bindtap="disconnectCoze">
+      <text class="action-icon">🔗</text>
+      <text class="action-text">断开Coze账户</text>
+      <text class="action-arrow">›</text>
+    </view>
+
+    <!-- 退出登录 -->
+    <view class="action-item action-danger" bindtap="handleLogout">
+      <text class="action-icon">🚪</text>
+      <text class="action-text">退出登录</text>
+      <text class="action-arrow">›</text>
+    </view>
+  </view>
+</view>
+
+<!-- 最近调用弹窗 -->
+<view class="log-overlay" wx:if="{{showLogs}}" bindtap="closeLogs">
+  <view class="log-modal" catchtap="noop">
+    <view class="log-modal-header">
+      <text class="log-modal-title">📋 最近调用</text>
+      <view class="log-modal-close" bindtap="closeLogs">✕</view>
+    </view>
+    <scroll-view class="log-modal-body" scroll-y wx:if="{{recentLogs.length > 0}}">
+      <view class="log-item" wx:for="{{recentLogs}}" wx:key="id">
+        <view class="log-info">
+          <text class="log-action">{{item.action}}</text>
+          <text class="log-time">{{item.created_at}}</text>
+        </view>
+        <text class="log-status {{item.status === 'success' ? 'log-ok' : 'log-fail'}}">
+          {{item.status === 'success' ? '成功' : '失败'}}
+        </text>
+      </view>
+      <view class="log-load-more" wx:if="{{logHasMore}}" bindtap="loadMoreLogs">
+        <text>{{logLoading ? '加载中...' : '加载更多'}}</text>
+      </view>
+    </scroll-view>
+    <view class="log-empty" wx:if="{{recentLogs.length === 0}}">
+      <text>暂无调用记录</text>
+    </view>
+  </view>
+</view>
+
+<!-- 隐藏 Canvas 用于海报绘制 -->
+<canvas 
+  type="2d" 
+  id="posterCanvas" 
+  style="position:fixed;left:-9999px;top:-9999px;width:600px;height:900px;"
+  class="poster-canvas"
+></canvas>
+
+<!-- 海报预览弹窗 -->
+<view class="poster-overlay" wx:if="{{showPoster}}" bindtap="closePoster">
+  <view class="poster-modal" catchtap="noop">
+    <view class="poster-close" bindtap="closePoster">✕</view>
+    <image class="poster-image" src="{{posterPath}}" mode="widthFix" show-menu-by-longpress="{{true}}" />
+    <view class="poster-actions">
+      <button class="poster-btn poster-btn-save" bindtap="savePoster">
+        💾 保存到相册
+      </button>
+    </view>
+    <view class="poster-tip">长按图片可转发给好友</view>
+  </view>
+</view>

@@ -1,0 +1,59 @@
+<!-- 使用教程列表页 -->
+<view class="tutorial-page">
+  <view class="tutorial-header">
+    <text class="tutorial-header-title">📖 使用教程</text>
+    <text class="tutorial-header-sub">点击工具查看详细使用教程</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 教程列表 -->
+  <view class="tutorial-list" wx:if="{{!loading}}">
+    <view
+      class="tutorial-item"
+      wx:for="{{tutorialTools}}"
+      wx:key="id"
+      bindtap="showTutorial"
+      data-name="{{item.name}}"
+      data-tutorial="{{item.tutorial}}"
+    >
+      <view class="tutorial-item-icon">
+        <text>{{item.type === 'bot' ? '🤖' : '⚡'}}</text>
+      </view>
+      <view class="tutorial-item-info">
+        <text class="tutorial-item-name">{{item.name}}</text>
+        <text class="tutorial-item-desc">{{item.description || '暂无描述'}}</text>
+      </view>
+      <text class="tutorial-item-arrow">›</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{tutorialTools.length === 0}}">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">暂无使用教程</text>
+    </view>
+  </view>
+</view>
+
+<!-- 教程详情弹窗 -->
+<view class="tutorial-overlay" wx:if="{{showModal}}" bindtap="closeTutorial">
+  <view class="tutorial-modal" catchtap="noop">
+    <view class="tutorial-modal-header">
+      <text class="tutorial-modal-title">{{currentToolName}}</text>
+      <view class="tutorial-modal-close" bindtap="closeTutorial">✕</view>
+    </view>
+    <scroll-view class="tutorial-modal-body" scroll-y>
+      <block wx:for="{{tutorialBlocks}}" wx:key="index">
+        <text wx:if="{{item.type === 'text'}}" class="tutorial-detail-text">{{item.text}}</text>
+        <text wx:elif="{{item.type === 'link'}}" class="tutorial-detail-link" bindtap="openLink" data-url="{{item.url}}">{{item.text}}</text>
+        <view wx:elif="{{item.type === 'br'}}" class="tutorial-detail-br"></view>
+        <image wx:elif="{{item.type === 'image'}}" class="tutorial-detail-image" src="{{item.url}}" mode="widthFix" show-menu-by-longpress lazy-load />
+        <video wx:elif="{{item.type === 'video'}}" class="tutorial-detail-video" src="{{item.url}}" controls show-center-play-btn enable-progress-gesture />
+      </block>
+    </scroll-view>
+  </view>
+</view>

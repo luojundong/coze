@@ -1,0 +1,48 @@
+<view class="container login-page">
+  <!-- Logo 区域 -->
+  <view class="logo-area">
+    <view class="logo-icon">
+      <text class="logo-text">AI</text>
+    </view>
+    <text class="app-name">即豆AI工具平台</text>
+    <text class="app-desc">使用扣子工作流，释放AI生产力</text>
+  </view>
+
+  <!-- 登录表单 -->
+  <view class="form-area">
+    <!-- 登录方式切换 -->
+    <view class="login-tabs">
+      <view class="tab-item {{loginMethod === 'phone' ? 'tab-active' : ''}}" bindtap="switchToPhone">
+        <text>账号</text>
+      </view>
+      <view class="tab-item {{loginMethod === 'email' ? 'tab-active' : ''}}" bindtap="switchToEmail">
+        <text>邮箱</text>
+      </view>
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">{{loginMethod === 'phone' ? '账号' : '邮箱'}}</text>
+      <input class="input input-login" placeholder="{{loginMethod === 'phone' ? '请输入账号码' : '请输入邮箱地址'}}" type="text" value="{{account}}" bindinput="onAccountInput" />
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">密码</text>
+      <input class="input input-login" placeholder="请输入密码（至少6位）" password="{{true}}" value="{{password}}" bindinput="onPasswordInput" />
+    </view>
+
+    <!-- 错误信息 -->
+    <view class="error-msg" wx:if="{{errorMsg}}">
+      <text>{{errorMsg}}</text>
+    </view>
+
+    <!-- 提交按钮 -->
+    <button class="btn-primary" bindtap="handleSubmit" disabled="{{loading}}">
+      {{loading ? '处理中...' : (isRegister ? '注册' : '登录')}}
+    </button>
+
+    <!-- 切换模式 -->
+    <view class="switch-mode" bindtap="toggleMode">
+      <text>{{isRegister ? '已有账号？去登录' : '没有账号？去注册'}}</text>
+    </view>
+  </view>
+</view>

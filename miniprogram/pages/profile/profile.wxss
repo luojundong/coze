@@ -1,0 +1,423 @@
+.profile-page {
+  padding: 0;
+  background: #F9FAFB;
+  min-height: 100vh;
+}
+
+.profile-header {
+  background: #2563EB;
+  padding: 64rpx 32rpx 48rpx;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20rpx;
+}
+
+.avatar-text {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.user-email {
+  display: block;
+  font-size: 30rpx;
+  margin-bottom: 16rpx;
+}
+
+.status-tags {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+}
+
+.credits-card {
+  margin: -32rpx 32rpx 24rpx;
+  position: relative;
+}
+
+.credits-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.credits-label {
+  font-size: 28rpx;
+  color: #6B7280;
+}
+
+.credits-value {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #2563EB;
+}
+
+.credits-detail {
+  display: flex;
+  gap: 48rpx;
+  padding-top: 24rpx;
+  border-top: 2rpx solid #E5E7EB;
+}
+
+.credits-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.credits-item-label {
+  font-size: 24rpx;
+  color: #6B7280;
+}
+
+.credits-item-value {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.action-list {
+  margin: 0 32rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 2rpx solid #F3F4F6;
+}
+
+.action-item:last-child {
+  border-bottom: none;
+}
+
+.action-icon {
+  font-size: 36rpx;
+  margin-right: 20rpx;
+}
+
+.action-text {
+  flex: 1;
+  font-size: 30rpx;
+  color: #111827;
+}
+
+.action-arrow {
+  font-size: 36rpx;
+  color: #D1D5DB;
+}
+
+.action-danger .action-text {
+  color: #EF4444;
+}
+
+/* ========== 会员徽章 ========== */
+.badge-vip {
+  background: #F59E0B;
+  color: #FFFFFF;
+}
+
+/* ========== 推荐人卡片 ========== */
+.referrer-card {
+  margin: -32rpx 32rpx 24rpx;
+  position: relative;
+}
+
+.referrer-title {
+  margin-bottom: 12rpx;
+}
+
+.referrer-label {
+  font-size: 24rpx;
+  color: #6B7280;
+}
+
+.referrer-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.referrer-name {
+  font-size: 28rpx;
+  color: #111827;
+  font-weight: 500;
+}
+
+/* ========== 分销模块 ========== */
+.referral-card {
+  margin: 0 32rpx 24rpx;
+}
+
+.referral-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.referral-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.referral-count {
+  font-size: 24rpx;
+  color: #6B7280;
+}
+
+.referral-actions {
+  margin-bottom: 16rpx;
+}
+
+.referral-btn {
+  padding: 16rpx 24rpx;
+  background: #EEF2FF;
+  border: 1rpx solid #C7D2FE;
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+.referral-btn text {
+  font-size: 26rpx;
+  color: #4F46E5;
+}
+
+.referral-list {
+  border-top: 1rpx solid #F3F4F6;
+  padding-top: 16rpx;
+}
+
+.referral-list-title {
+  font-size: 24rpx;
+  color: #6B7280;
+  margin-bottom: 12rpx;
+}
+
+.referral-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #F3F4F6;
+}
+
+.referral-item:last-child {
+  border-bottom: none;
+}
+
+.referral-item-name {
+  font-size: 26rpx;
+  color: #374151;
+}
+
+.referral-item-status {
+  font-size: 22rpx;
+  color: #6B7280;
+}
+
+/* ========== 海报弹窗 ========== */
+.poster-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-modal {
+  position: relative;
+  width: 90vw;
+  max-width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 60rpx 30rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.poster-close {
+  position: absolute;
+  top: 16rpx;
+  right: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #9CA3AF;
+  background: #F3F4F6;
+  border-radius: 50%;
+}
+
+.poster-image {
+  width: 100%;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.poster-actions {
+  margin-top: 30rpx;
+  width: 100%;
+}
+
+.poster-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.poster-btn-save {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.poster-tip {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #9CA3AF;
+}
+
+/* ========== 最近调用弹窗 ========== */
+.log-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.log-modal {
+  width: 100%;
+  max-height: 75vh;
+  background: #FFFFFF;
+  border-radius: 24rpx 24rpx 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid #F3F4F6;
+  flex-shrink: 0;
+}
+
+.log-modal-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.log-modal-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #9CA3AF;
+  background: #F3F4F6;
+  border-radius: 50%;
+}
+
+.log-modal-body {
+  flex: 1;
+  padding: 0 32rpx;
+  max-height: 60vh;
+}
+
+.log-modal-body .log-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F3F4F6;
+}
+
+.log-modal-body .log-item:last-child {
+  border-bottom: none;
+}
+
+.log-modal-body .log-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.log-modal-body .log-action {
+  font-size: 28rpx;
+  color: #1F2937;
+  font-weight: 500;
+}
+
+.log-modal-body .log-time {
+  font-size: 22rpx;
+  color: #9CA3AF;
+}
+
+.log-modal-body .log-status {
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
+  margin-right: 40rpx;
+}
+
+.log-modal-body .log-ok {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.log-modal-body .log-fail {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.log-load-more {
+  text-align: center;
+  padding: 24rpx 0 32rpx;
+  font-size: 26rpx;
+  color: #2563EB;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 80rpx 0;
+  font-size: 28rpx;
+  color: #9CA3AF;
+}
