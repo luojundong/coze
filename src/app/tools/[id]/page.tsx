@@ -1074,9 +1074,12 @@ export default function ToolDetailPage() {
                 const leDetail = le.code
                   ? `[${le.code}${le.param ? ':' + le.param : ''}] ${le.msg || le.message || '对话失败'}`
                   : (le.msg || le.message || '对话失败，请重试');
+                // 自愈：会话可能已在 Coze 端失效（如历史对话记录的旧 conversation_id），
+                // 清空 conversationId，下一轮将新建会话，避免持续 4000 死循环
+                setConversationId('');
                 setMessages(prev => prev.map(m =>
                   m.id === assistantId
-                    ? { ...m, content: leDetail, isStreaming: false }
+                    ? { ...m, content: `${leDetail}\n\n（已自动重置会话，请重新发送）`, isStreaming: false }
                     : m
                 ));
                 setIsSending(false);
@@ -1086,6 +1089,8 @@ export default function ToolDetailPage() {
               // Handle error event
               if (currentEvent === 'error' || data.error_code) {
                 const errMsg = data.error_message || data.msg || data.last_error?.msg || '调用出错';
+                // 自愈：清空 conversationId，下一轮新建会话
+                setConversationId('');
                 setMessages(prev => prev.map(m =>
                   m.id === assistantId
                     ? { ...m, content: `错误: ${errMsg}`, isStreaming: false }

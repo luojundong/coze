@@ -303,7 +303,7 @@ export async function POST(req: NextRequest) {
 
     // ===================== Bot 类型：SSE 流式 + 异步兜底 =====================
     const taskId = genId();
-    const conversationIdForBody = bodyConversationId || (parameters?.conversation_id as string | undefined);
+    let conversationIdForBody = bodyConversationId || (parameters?.conversation_id as string | undefined);
     const rawUserMessage = typeof parameters?.input === 'string' ? parameters.input : JSON.stringify(parameters ?? {});
     const protocol = req.headers.get('x-forwarded-proto') || 'https';
     const host = req.headers.get('host') || '';
@@ -345,10 +345,19 @@ export async function POST(req: NextRequest) {
               content: m.content || '',
               content_type: m.content_type || 'text',
             }));
+          } else {
+            // conversation 已失效/不存在（history 接口返回非 0 code）→ 丢弃该 id，新建 conversation
+            console.warn(`[Stream ${taskId}] conversation_id ${conversationIdForBody} invalid on history fetch (code=${histData?.code}), will create a new conversation instead`);
+            conversationIdForBody = '';
           }
+        } else {
+          // HTTP 错误（404/400 等）→ conversation 不存在/失效 → 丢弃该 id，新建 conversation
+          console.warn(`[Stream ${taskId}] conversation_id ${conversationIdForBody} history fetch HTTP ${histRes.status}, will create a new conversation instead`);
+          conversationIdForBody = '';
         }
       } catch (e: any) {
-        console.warn(`[Stream ${taskId}] History fetch error:`, e.message);
+        console.warn(`[Stream ${taskId}] History fetch error for ${conversationIdForBody}:`, e.message, '-> creating new conversation');
+        conversationIdForBody = '';
       }
     }
 
