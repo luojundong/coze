@@ -102,10 +102,12 @@ async function executeCozeTask(taskId: string, params: {
     }
 
     const userMessageObj = buildMultimodalUserMessage(rawUserMessage, publicBaseUrl);
-    const additionalMessages = [
-      ...truncatedHistory,
-      userMessageObj,
-    ];
+    // 关键修复：开启 auto_save_history 且传入 conversation_id（Coze 用自身保存的历史）时，
+    // additional_messages 只能包含「当前这一轮用户消息」，不能再塞历史（含 assistant 消息），
+    // 否则 Coze 会报 "Request parameter error"。仅在无 conversation_id 的新对话才把历史一起带上。
+    const additionalMessages = conversationId
+      ? [userMessageObj]
+      : [...truncatedHistory, userMessageObj];
 
     // 关键：使用 stream: true，通过 SSE 流式读取 Coze 响应
     const requestBody: any = {

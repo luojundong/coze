@@ -6,16 +6,16 @@ import { createAuditLog } from '@/lib/audit-log';
 const COZE_API_BASE_URL = process.env.COZE_API_BASE_URL || 'https://api.coze.cn';
 
 export async function GET(req: NextRequest) {
-  const { userId, error } = await verifyAuth(req);
-  if (error) return error;
-
-  // Verify activation
-  const { activated, error: activationError } = await verifyActivation(userId);
-  if (!activated) {
-    return NextResponse.json({ error: activationError }, { status: 403 });
-  }
-
   try {
+    const { userId, error } = await verifyAuth(req);
+    if (error) return error;
+
+    // Verify activation
+    const { activated, error: activationError } = await verifyActivation(userId);
+    if (!activated) {
+      return NextResponse.json({ error: activationError }, { status: 403 });
+    }
+
     // 获取 Coze Token：用户 Token 优先；用户未连接 Coze 时降级到平台 Workload Token；
     // 两者都无 → 返回友好 403（避免 500），提示用户连接 Coze 账户。
     let accessToken: string;
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errText = await response.text();
+      console.error('[Workflow List] Coze /v1/workflows failed:', response.status, errText.slice(0, 500));
       return NextResponse.json(
         { error: '获取工作流列表失败', details: errText },
         { status: response.status }
@@ -57,7 +58,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : '未知错误';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[Workflow List] GET failed:', message);
+    return NextResponse.json({ error: `获取工具列表失败：${message}` }, { status: 500 });
   }
 }
 
