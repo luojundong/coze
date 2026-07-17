@@ -457,7 +457,7 @@ export async function POST(req: NextRequest) {
             errorMessage = 'Coze Token 已失效，请重新连接 Coze 账户';
           }
         } else if (code === 4101 || code === 403) errorMessage = '该智能体暂未发布或无法访问';
-        else if (code === 4000) errorMessage = '智能体参数错误';
+        else if (code === 4000) errorMessage = `智能体参数错误${errJson.param ? ` (${errJson.param})` : ''}`;
         else if (isConcurrencyError) errorMessage = '当前使用人数较多，智能体中的图像处理节点排队拥挤，请稍后重试';
       } catch { /* keep default */ }
 
@@ -728,10 +728,21 @@ export async function POST(req: NextRequest) {
                   }
                   if (data.conversation_id && !convId) convId = data.conversation_id;
                   if (currentEvent === 'conversation.chat.failed') {
-                    console.error(`[Stream ${taskId}] Chat failed:`, JSON.stringify(data));
+                    const le = data.last_error || {};
+                    const leCode = le.code ?? le.error_code ?? '';
+                    const leParam = le.param ?? '';
+                    const leMsg = le.msg ?? le.message ?? '智能体执行失败';
+                    console.error(`[Stream ${taskId}] Chat failed. code=${leCode} param=${leParam} msg=${leMsg}`);
+                    console.error(`[Stream ${taskId}] Request was:`, JSON.stringify({
+                      bot_id: config.coze_id,
+                      user_id: cozeUserId || userId,
+                      conversation_id: conversationIdForBody || '(new)',
+                      auto_save_history: true,
+                      additional_messages: additionalMessages,
+                    }));
                     taskStore.set(taskId, {
                       status: 'failed',
-                      error: data.last_error?.msg || '智能体执行失败',
+                      error: leCode ? `智能体执行失败 [${leCode}${leParam ? ':' + leParam : ''}]: ${leMsg}` : leMsg,
                       createdAt: Date.now(),
                       userId,
                     });

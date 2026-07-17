@@ -504,6 +504,22 @@ export default function ToolDetailPage() {
     }
   }, [params]);
 
+  // 关键修复：切换工具（toolId 变化）时重置对话与会话状态。
+  // Next.js 在同一动态路由 /tools/[id] 之间切换时不会卸载组件，
+  // 若不重置，上一个工具的 conversation_id 会被带入新工具；
+  // 而 Coze 的 conversation 绑定到特定 bot，跨 bot 复用会报 "Request parameter error"。
+  useEffect(() => {
+    setMessages([]);
+    setConversationId('');
+    setCurrentConversationId(null);
+    setInputValue('');
+    setParamValues({});
+    setWorkflowInput('');
+    setWorkflowResult('');
+    setIsSending(false);
+    setIsRunningWorkflow(false);
+  }, [toolId]);
+
   // Fetch tool info
   useEffect(() => {
     if (!toolId) return;
@@ -1054,9 +1070,13 @@ export default function ToolDetailPage() {
 
               // Handle chat failed
               if (currentEvent === 'conversation.chat.failed') {
+                const le = data.last_error || {};
+                const leDetail = le.code
+                  ? `[${le.code}${le.param ? ':' + le.param : ''}] ${le.msg || le.message || '对话失败'}`
+                  : (le.msg || le.message || '对话失败，请重试');
                 setMessages(prev => prev.map(m =>
                   m.id === assistantId
-                    ? { ...m, content: data.last_error?.msg || '对话失败，请重试', isStreaming: false }
+                    ? { ...m, content: leDetail, isStreaming: false }
                     : m
                 ));
                 setIsSending(false);

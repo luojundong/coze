@@ -59,6 +59,13 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : '未知错误';
     console.error('[Workflow List] GET failed:', message);
+    // token 未连接/过期属于正常业务状态，返回 403 提示连接，而非 500
+    if (message.includes('not connected') || message.includes('No refresh token') || message.includes('expired')) {
+      return NextResponse.json(
+        { error: '请先连接 Coze 账户', needCozeAuth: true },
+        { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      );
+    }
     return NextResponse.json({ error: `获取工具列表失败：${message}` }, { status: 500 });
   }
 }
