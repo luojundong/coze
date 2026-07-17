@@ -55,7 +55,8 @@ export async function GET(
 
 /**
  * DELETE /api/admin/conversations/[id]
- * 软删除指定对话
+ * 物理删除指定对话（连同其消息，通过外键 CASCADE 级联删除）
+ * 说明：后台删除为彻底删除，删除后列表不再展示该记录。
  */
 export async function DELETE(
   req: NextRequest,
@@ -78,8 +79,13 @@ export async function DELETE(
     );
   }
 
+  // 先删消息（兜底：即便未配置外键 CASCADE 也能清理干净），再删对话
   await execute(
-    `UPDATE conversations SET is_deleted = 1, updated_at = NOW() WHERE id = ?`,
+    `DELETE FROM conversation_messages WHERE conversation_id = ?`,
+    [id]
+  );
+  await execute(
+    `DELETE FROM conversations WHERE id = ?`,
     [id]
   );
 

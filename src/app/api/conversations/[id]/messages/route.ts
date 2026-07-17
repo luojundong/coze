@@ -31,56 +31,64 @@ export async function POST(
     );
   }
 
-  // 校验所有权
-  const conv = await queryOne(
-    `SELECT id FROM conversations WHERE id = ? AND user_id = ? AND is_deleted = 0`,
-    [id, userId]
-  );
+  try {
+    // 验证对话属于当前用户且在24小时内
+    const conv = await queryOne(
+      `SELECT id FROM conversations
+       WHERE id = ? AND user_id = ? AND is_deleted = 0
+         AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+      [id, userId]
+    );
 
-  if (!conv) {
+    if (!conv) {
+      return NextResponse.json(
+        { error: '对话不存在或已过期' },
+        { status: 404, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      );
+    }
+
+    const messages: SaveMessage[] = body.messages;
+    const replaceAll = body.replace === true;
+
+    // 如果是全量替换，先删除旧消息
+    if (replaceAll) {
+      await execute(
+        `DELETE FROM conversation_messages WHERE conversation_id = ?`,
+        [id]
+      );
+    }
+
+    // 批量插入消息
+    let insertCount = 0;
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      const msgId = genId();
+      await execute(
+        `INSERT INTO conversation_messages (id, conversation_id, role, content, content_type, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [msgId, id, m.role, m.content, m.content_type || 'text', m.sort_order ?? i]
+      );
+      insertCount++;
+    }
+
+    // 自动更新对话标题（取第一条用户消息的前50字）
+    const firstUserMsg = messages.find(m => m.role === 'user');
+    if (firstUserMsg) {
+      const title = firstUserMsg.content.length > 50
+        ? firstUserMsg.content.substring(0, 50) + '…'
+        : firstUserMsg.content;
+      await execute(
+        `UPDATE conversations SET title = ? WHERE id = ? AND (title IS NULL OR title = '')`,
+        [title, id]
+      );
+    }
+
+    return NextResponse.json({ success: true, count: insertCount });
+  } catch (err: any) {
+    console.error('[Conversations/:id/messages] POST error:', err);
     return NextResponse.json(
-      { error: '对话不存在' },
-      { status: 404, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      { error: err.message || '保存消息失败' },
+      { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
     );
   }
-
-  const messages: SaveMessage[] = body.messages;
-  const replaceAll = body.replace === true;
-
-  if (replaceAll) {
-    // 全量替换模式：先删除旧消息
-    await execute(
-      `DELETE FROM conversation_messages WHERE conversation_id = ?`,
-      [id]
-    );
-  }
-
-  // 批量插入
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-    const sortOrder = replaceAll ? i : (msg.sort_order ?? 0);
-
-    await execute(
-      `INSERT INTO conversation_messages (id, conversation_id, role, content, content_type, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [genId(), id, msg.role, msg.content, msg.content_type || 'text', sortOrder]
-    );
-  }
-
-  // 更新对话 updated_at 和 title（取第一条用户消息前50字作为标题）
-  const firstUserMsg = messages.find((m: SaveMessage) => m.role === 'user');
-  if (firstUserMsg) {
-    const title = firstUserMsg.content.substring(0, 50);
-    await execute(
-      `UPDATE conversations SET title = ?, updated_at = NOW() WHERE id = ?`,
-      [title, id]
-    );
-  } else {
-    await execute(
-      `UPDATE conversations SET updated_at = NOW() WHERE id = ?`,
-      [id]
-    );
-  }
-
-  return NextResponse.json({ success: true, count: messages.length });
 }

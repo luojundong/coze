@@ -43,6 +43,9 @@ export default function AdminConversationsPage() {
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
   const pageSize = 10;
 
   const init = useCallback(async () => {
@@ -62,6 +65,7 @@ export default function AdminConversationsPage() {
       const data = await res.json();
       setConversations(data.conversations ?? []);
       setTotal(data.total ?? 0);
+      setSelectedIds(new Set());
     } else if (res.status === 401 || res.status === 403) {
       router.push('/dashboard');
     }
@@ -96,6 +100,49 @@ export default function AdminConversationsPage() {
       }
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (prev.size === conversations.length && conversations.length > 0) {
+        return new Set();
+      }
+      return new Set(conversations.map((c) => c.id));
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    if (!session || selectedIds.size === 0) return;
+    setBatchDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/admin/conversations`, {
+        method: 'DELETE',
+        headers: {
+          'x-session': session.access_token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBatchDeleteOpen(false);
+        setSelectedIds(new Set());
+        fetchConversations();
+      } else {
+        alert(data.error || '批量删除失败');
+      }
+    } finally {
+      setBatchDeleteLoading(false);
     }
   };
 
@@ -137,6 +184,15 @@ export default function AdminConversationsPage() {
           <RefreshCw className="w-3.5 h-3.5" />
           刷新
         </button>
+        {selectedIds.size > 0 && (
+          <button
+            onClick={() => setBatchDeleteOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-red-300 bg-red-50 rounded-md text-sm text-red-600 hover:bg-red-100"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            批量删除 ({selectedIds.size})
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -145,6 +201,14 @@ export default function AdminConversationsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-3 font-medium text-gray-600 w-10">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-600 cursor-pointer"
+                    checked={conversations.length > 0 && selectedIds.size === conversations.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">用户</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">工具</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">标题</th>
@@ -155,12 +219,20 @@ export default function AdminConversationsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">加载中...</td></tr>
               ) : conversations.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">暂无对话记录</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">暂无对话记录</td></tr>
               ) : (
                 conversations.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={c.id} className={`border-b border-gray-100 hover:bg-gray-50 ${selectedIds.has(c.id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-blue-600 cursor-pointer"
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => toggleSelect(c.id)}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <div>{c.user_email || '-'}</div>
                       <div className="text-xs text-gray-500 font-mono break-all">{c.user_id}</div>
@@ -309,7 +381,7 @@ export default function AdminConversationsPage() {
                 标题: <span className="font-medium">{truncate(deleteTarget.title, 50)}</span>
               </p>
               <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded">
-                此操作会将对话标记为已删除，相关消息仍保留在数据库中。
+                此操作将彻底删除该对话及其全部消息，且不可恢复。
               </p>
             </div>
             <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
@@ -325,6 +397,43 @@ export default function AdminConversationsPage() {
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 {deleteLoading ? '删除中...' : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Delete Confirm Modal */}
+      {batchDeleteOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-red-600">批量删除对话</h3>
+              <button onClick={() => setBatchDeleteOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-sm text-gray-600 mb-3">
+                确定要删除选中的 <span className="font-semibold text-red-600">{selectedIds.size}</span> 条对话记录吗？
+              </p>
+              <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded">
+                此操作将彻底删除这些对话及其全部消息，且不可恢复。
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setBatchDeleteOpen(false)}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleBatchDelete}
+                disabled={batchDeleteLoading}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {batchDeleteLoading ? '删除中...' : `确认删除 (${selectedIds.size})`}
               </button>
             </div>
           </div>

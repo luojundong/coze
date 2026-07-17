@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, verifyToolActivation } from '@/lib/auth-guard';
-import { getValidCozeTokenData } from '@/lib/coze-token';
+import { getValidCozeTokenData, refreshCozeToken } from '@/lib/coze-token';
 import { createAuditLog } from '@/lib/audit-log';
 import { deductCredits } from '@/lib/credit';
 import { collectMediaFromSSEEvent, triggerBackgroundDownload } from '@/lib/media-downloader';
 import { queryOne } from '@/lib/db';
 import { getOAuthConfig } from '@/lib/oauth-config';
 import { genId } from '@/lib/db';
-import { extractImageUrls, removeImageUrls } from '@/lib/image-inline';
+import { buildMultimodalUserMessage } from '@/lib/image-inline';
 // 共享 taskStore（与 stream/route.ts 共用同一个 Map）
 import { taskStore } from '../../stream/route';
 
@@ -52,14 +52,14 @@ async function executeCozeTask(taskId: string, params: {
   apiBaseUrl: string;
   botId: string;
   cozeUserId: string;
-  userMessage: string;
-  imageUrls?: string[];
+  rawUserMessage: string;
+  publicBaseUrl?: string;
   conversationId?: string;
   configName: string;
   configType: string;
   req: NextRequest;
 }) {
-  const { userId, accessToken, apiBaseUrl, botId, cozeUserId, userMessage, imageUrls = [], conversationId, configName, configType, req } = params;
+  const { userId, accessToken, apiBaseUrl, botId, cozeUserId, rawUserMessage, publicBaseUrl, conversationId, configName, configType, req } = params;
   const taskStartTime = Date.now();
 
   try {
@@ -100,10 +100,10 @@ async function executeCozeTask(taskId: string, params: {
       }
     }
 
+    const userMessageObj = buildMultimodalUserMessage(rawUserMessage, publicBaseUrl);
     const additionalMessages = [
       ...truncatedHistory,
-      { role: 'user', content: userMessage, content_type: 'text' },
-      ...imageUrls.map(url => ({ role: 'user' as const, content: url, content_type: 'image' as const })),
+      userMessageObj,
     ];
 
     // 关键：使用 stream: true，通过 SSE 流式读取 Coze 响应
@@ -122,7 +122,7 @@ async function executeCozeTask(taskId: string, params: {
 
     console.log(`[Task ${taskId}] Starting SSE stream with ${additionalMessages.length} messages`);
 
-    // 步骤 1: 发起流式对话
+    // 步骤 1: 发起流式对话（Token 失效时自动刷新并重试一次）
     const chatController = new AbortController();
     const chatTimeoutId = setTimeout(() => chatController.abort(), 30000);
 
@@ -137,6 +137,29 @@ async function executeCozeTask(taskId: string, params: {
         body: JSON.stringify(requestBody),
         signal: chatController.signal,
       });
+
+      // 非平台 token 且 Coze 返回 401/令牌无效：强制刷新并重试一次
+      if (!isPlatformToken && !chatRes.ok) {
+        let errData: any = null;
+        try { errData = await chatRes.clone().json(); } catch { /* 忽略 */ }
+        const errCode = errData?.error_code || errData?.code;
+        const errMsg = (errData?.msg || errData?.message || '').toLowerCase();
+        const tokenRejected = chatRes.status === 401 || errCode === 401 || errCode === 4010 ||
+          errMsg.includes('token') || errMsg.includes('incorrect') || errMsg.includes('unauthorized');
+        if (tokenRejected) {
+          const fresh = await refreshCozeToken(userId);
+          console.log(`[Task ${taskId}] Token rejected, refreshed & retrying chat init`);
+          chatRes = await fetch(`${apiBaseUrl}/v3/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${fresh.accessToken}`,
+            },
+            body: JSON.stringify(requestBody),
+            signal: chatController.signal,
+          });
+        }
+      }
     } catch (e: any) {
       clearTimeout(chatTimeoutId);
       console.error(`[Task ${taskId}] Chat init error:`, e.message);
@@ -429,8 +452,6 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get('x-forwarded-proto') || 'https';
     const host = req.headers.get('host') || '';
     const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || `${protocol}://${host}`;
-    const imageUrls = extractImageUrls(rawUserMessage, publicBaseUrl);
-    const userMessage = removeImageUrls(rawUserMessage);
 
     taskStore.set(taskId, { status: 'pending', chunk: '', createdAt: Date.now(), userId });
 
@@ -442,8 +463,8 @@ export async function POST(req: NextRequest) {
       apiBaseUrl,
       botId: config.coze_id,
       cozeUserId: cozeUserId || userId,
-      userMessage,
-      imageUrls,
+      rawUserMessage,
+      publicBaseUrl,
       conversationId,
       configName: config.name,
       configType: config.type,

@@ -112,33 +112,48 @@ export async function refreshCozeToken(userId: string): Promise<CozeTokenData> {
     throw new Error('Coze OAuth not configured. Please set COZE_CLIENT_ID and COZE_CLIENT_SECRET.');
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);  // 10 秒超时
-
-  let response: Response;
-  try {
-    response = await fetch(`${config.apiBaseUrl}/api/permission/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.clientSecret}`,
-      },
-      body: JSON.stringify({
-        grant_type: 'refresh_token',
-        refresh_token: currentToken.refreshToken,
-        client_id: config.clientId,
-      }),
-      signal: controller.signal,
-    });
-  } catch (e: any) {
-    clearTimeout(timeoutId);
-    if (e.name === 'AbortError') {
-      console.error('[CozeToken] Refresh timed out after 10s');
-      throw new Error('Coze Token 刷新超时，请检查网络连接后重试');
+  // 刷新带重试：网络抖动/超时为瞬时错误，重试一次可避免误判用户需重新授权
+  let response: Response | null = null;
+  let lastError: any = null;
+  const MAX_REFRESH_ATTEMPTS = 2;
+  for (let attempt = 1; attempt <= MAX_REFRESH_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);  // 10 秒超时
+    try {
+      response = await fetch(`${config.apiBaseUrl}/api/permission/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.clientSecret}`,
+        },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          refresh_token: currentToken.refreshToken,
+          client_id: config.clientId,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      break; // 拿到响应（无论 HTTP 状态）即跳出重试循环
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      lastError = e;
+      if (e.name === 'AbortError') {
+        console.error(`[CozeToken] Refresh timed out (attempt ${attempt}/${MAX_REFRESH_ATTEMPTS})`);
+      } else {
+        console.error(`[CozeToken] Refresh network error (attempt ${attempt}/${MAX_REFRESH_ATTEMPTS}):`, e.message);
+      }
+      if (attempt < MAX_REFRESH_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, 800)); // 短暂退避后重试
+      }
     }
-    throw e;
   }
-  clearTimeout(timeoutId);
+
+  if (!response) {
+    // 两次均网络失败：保留原 refresh_token 不被清除，下次请求仍可重试刷新
+    console.error('[CozeToken] Refresh failed after retries, keeping existing token');
+    throw new Error('Coze Token 刷新失败（网络异常），请稍后重试');
+  }
 
   if (!response.ok) {
     const errText = await response.text();
@@ -157,9 +172,12 @@ export async function refreshCozeToken(userId: string): Promise<CozeTokenData> {
   }
 
   const tokenData = await response.json();
+  // 关键修复：当刷新接口未返回新 refresh_token（Coze 默认不轮换）时，
+  // 必须沿用旧的 refresh_token，否则下次 access token 过期后将无法再刷新，
+  // 导致用户频繁被要求重新连接 Coze 账户。
   const newToken: CozeTokenData = {
     accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
+    refreshToken: tokenData.refresh_token || currentToken.refreshToken,
     expiresAt: formatMysqlDatetime(Date.now() + Math.min(tokenData.expires_in || 86400, 10 * 365 * 24 * 3600) * 1000),
     cozeUserId: tokenData.coze_user_id,
     scope: tokenData.scope,

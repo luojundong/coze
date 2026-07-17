@@ -1,160 +1,42 @@
-import { readFile } from 'fs/promises';
-import path from 'path';
-
-export interface InlinedImage {
-  originalUrl: string;
-  dataUri: string;
-  mime: string;
-  size: number;
-}
-
-// 上传目录（相对于项目根目录）
-function getProjectRoot(): string {
-  if (process.env.PROJECT_ROOT) return process.env.PROJECT_ROOT;
-  const cwd = process.cwd();
-  if (cwd.endsWith('.next') || cwd.includes('.next')) {
-    return path.resolve(cwd, '..');
-  }
-  return cwd;
-}
-
-function getPublicBaseUrl(): string {
-  return process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || '';
-}
-
-function isLocalImageUrl(url: string): boolean {
-  if (!url) return false;
-
-  // 仅处理 http(s) URL 或相对路径
-  const trimmed = url.trim();
-  if (!trimmed.startsWith('http') && !trimmed.startsWith('/uploads/')) {
-    return false;
-  }
-
-  // 路径必须以图片扩展名结尾（忽略 query string）
-  const cleanUrl = trimmed.split('?')[0].toLowerCase();
-  if (!/\.(png|jpe?g|gif|webp|bmp)$/.test(cleanUrl)) return false;
-
-  // 相对路径 /uploads/... 直接视为本地
-  if (trimmed.startsWith('/uploads/')) return true;
-
-  // 完整 URL：检查域名是否属于当前服务器
-  const baseUrl = getPublicBaseUrl();
-  if (!baseUrl) return false;
-  try {
-    const baseHost = new URL(baseUrl).hostname;
-    const urlObj = new URL(trimmed);
-    if (urlObj.hostname !== baseHost) return false;
-    return urlObj.pathname.startsWith('/uploads/');
-  } catch {
-    return false;
-  }
-}
-
-function urlToFilePath(url: string): string {
-  let pathname: string;
-  try {
-    pathname = new URL(url).pathname;
-  } catch {
-    pathname = url;
-  }
-  return path.join(getProjectRoot(), 'public', pathname.replace(/^\//, ''));
-}
-
-function getMimeFromPath(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase().replace('.', '');
-  switch (ext) {
-    case 'png': return 'image/png';
-    case 'gif': return 'image/gif';
-    case 'webp': return 'image/webp';
-    case 'bmp': return 'image/bmp';
-    case 'jpeg':
-    case 'jpg':
-    default: return 'image/jpeg';
-  }
-}
-
 /**
- * 从文本中提取本地上传的图片 URL，读取文件并内联为 base64 data URI。
+ * 构建发送给 Coze /v3/chat 的多模态用户消息（单条）。
  *
- * 背景：Coze 服务器在海外/不同网络环境，直接下载用户服务器上的图片链接容易超时。
- * 通过把本地图片转为 base64 data URI，Coze 无需再发起外部 HTTP 下载，从根本上解决
- * "下载图片链接超时" 问题。
+ * Coze additional_messages 的 content_type 只支持 `text` / `object_string` / `card`，
+ * 没有 `image` 这个类型。图片必须放进 `content_type: 'object_string'` 的 content（JSON 数组）里。
  *
- * 限制：
- * - 只处理当前服务器 public/uploads 目录下的图片，避免读取外部文件造成安全风险。
- * - 单张图片超过 maxSizeBytes 时跳过内联，避免 Coze 请求体过大。
+ * 规则（依据 Coze 官方文档）：
+ * - 纯文本：content_type 必须为 'text'，content 为文本字符串。
+ * - 含图片：content_type 必须为 'object_string'，content 为数组序列化的 JSON 字符串，
+ *   形如 [{type:'text',text:'...'},{type:'image',file_url:{url:'公网URL'}}]。
+ *   - 文本与图片打包进同一条 object_string 时不受「纯图片必须紧邻文本消息」的限制。
+ *   - file_url 必须是公网可公开访问的地址（base64 data URI / 内网地址均会触发 Request parameter error）。
+ *
+ * 图片 URL 来源：浏览器端上传后由后端返回的公网地址（public/uploads/...），或用户输入的图片链接，
+ * 均为公网可访问，可直接作为 file_url。
+ * 音频/视频 URL 仍按 v43 行为保留在文本中，由 Coze 工作流自行解析。
  */
-export async function inlineLocalImages(text: string, maxSizeBytes = 4 * 1024 * 1024): Promise<{ text: string; images: InlinedImage[] }> {
-  if (!text || typeof text !== 'string') return { text: text || '', images: [] };
 
-  // 匹配图片 URL：完整 http(s) 或相对路径 /uploads/...，扩展名 png/jpg/jpeg/gif/webp/bmp
-  const imageUrlRe = /(https?:\/\/[^\s<>"')\]]+\.(?:png|jpe?g|gif|webp|bmp)(?:\?[^\s<>"')\]]*)?)|(\/uploads\/[^\s<>"')\]]+\.(?:png|jpe?g|gif|webp|bmp)(?:\?[^\s<>"')\]]*)?)/gi;
-  const matches = Array.from(new Set(text.match(imageUrlRe) || []));
-
-  const images: InlinedImage[] = [];
-  let result = text;
-
-  for (const url of matches) {
-    if (!isLocalImageUrl(url)) continue;
-
-    const filePath = urlToFilePath(url);
-    const publicUploadsPath = path.resolve(getProjectRoot(), 'public', 'uploads');
-    const resolvedPath = path.resolve(filePath);
-
-    // 安全校验：禁止路径穿越到 uploads 目录之外
-    if (!resolvedPath.startsWith(publicUploadsPath)) {
-      console.warn(`[InlineImage] Skip path outside uploads: ${filePath}`);
-      continue;
-    }
-
-    try {
-      const buffer = await readFile(resolvedPath);
-      if (buffer.length > maxSizeBytes) {
-        console.warn(`[InlineImage] Skip oversized image: ${url} (${buffer.length} bytes > ${maxSizeBytes})`);
-        continue;
-      }
-      const mime = getMimeFromPath(resolvedPath);
-      const dataUri = `data:${mime};base64,${buffer.toString('base64')}`;
-      images.push({ originalUrl: url, dataUri, mime, size: buffer.length });
-      result = result.replaceAll(url, dataUri);
-      console.log(`[InlineImage] Inlined ${url} (${buffer.length} bytes)`);
-    } catch (err) {
-      console.warn(`[InlineImage] Failed to read ${url}:`, err);
-    }
-  }
-
-  return { text: result, images };
+export interface CozeTextMessage {
+  role: 'user';
+  content_type: 'text';
+  content: string;
 }
 
-/**
- * 递归处理对象/数组中的字符串值，把本地上传图片 URL 转为 base64 data URI。
- */
-export async function inlineLocalImagesInObject(
-  obj: unknown,
-  maxSizeBytes = 4 * 1024 * 1024
-): Promise<unknown> {
-  if (typeof obj === 'string') {
-    const { text } = await inlineLocalImages(obj, maxSizeBytes);
-    return text;
-  }
-  if (Array.isArray(obj)) {
-    return Promise.all(obj.map(item => inlineLocalImagesInObject(item, maxSizeBytes)));
-  }
-  if (obj && typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      result[key] = await inlineLocalImagesInObject(value, maxSizeBytes);
-    }
-    return result;
-  }
-  return obj;
+export interface CozeObjectStringMessage {
+  role: 'user';
+  content_type: 'object_string';
+  content: string;
 }
+
+export type CozeUserMessage = CozeTextMessage | CozeObjectStringMessage;
 
 /**
  * 从文本中提取图片 URL（http/https 或 /uploads/... 相对路径）。
  * 对于相对路径，会拼接 publicBaseUrl 生成绝对 URL。
  * 返回去重后的 URL 数组。
+ *
+ * 注意：仅提取图片扩展名（png/jpg/jpeg/gif/webp/bmp）。
+ * 音频/视频等多媒体文件由 Coze 工作流/智能体自行从文本中的 URL 解析处理。
  */
 export function extractImageUrls(text: string, publicBaseUrl?: string): string[] {
   if (!text || typeof text !== 'string') return [];
@@ -178,3 +60,40 @@ export function removeImageUrls(text: string): string {
   return text.replace(imageUrlRe, '').replace(/\n\s*\n/g, '\n').trim();
 }
 
+/**
+ * 构建 Coze additional_messages 中的用户消息。
+ *
+ * - 无图片：返回 content_type='text' 的纯文本消息（符合 Coze 规范，避免参数错误）。
+ * - 有图片：返回 content_type='object_string' 消息，content 为 JSON 数组，
+ *   包含文本元素（若文本为空用空格占位以满足「文本+图片同条」规则）与图片 file_url 元素。
+ *
+ * 图片一律使用公网 URL（extractImageUrls 已补全为绝对地址），不使用 base64。
+ */
+export function buildMultimodalUserMessage(rawText: string, publicBaseUrl?: string): CozeUserMessage {
+  const imageUrls = extractImageUrls(rawText, publicBaseUrl);
+  const text = removeImageUrls(rawText);
+
+  // 纯文本：必须用 content_type: 'text'
+  if (imageUrls.length === 0) {
+    return { role: 'user', content_type: 'text', content: text || ' ' };
+  }
+
+  // 含图片：必须用 content_type: 'object_string'，文本与图片打包进同一条
+  const contentObjects: Array<
+    { type: 'text'; text: string } | { type: 'image'; file_url: { url: string } }
+  > = [];
+
+  // 文本（含音频/视频 URL 等）作为 text 元素；为空时用空格占位，
+  // 以满足 Coze「文本+图片同条 object_string 不受纯图片限制」的规则
+  contentObjects.push({ type: 'text', text: text.trim().length > 0 ? text.trim() : ' ' });
+
+  for (const url of imageUrls) {
+    contentObjects.push({ type: 'image', file_url: { url } });
+  }
+
+  return {
+    role: 'user',
+    content_type: 'object_string',
+    content: JSON.stringify(contentObjects),
+  };
+}

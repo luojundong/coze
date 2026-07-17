@@ -5,6 +5,22 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { createAuditLog } from '@/lib/audit-log';
 import { grantCredits } from '@/lib/credit';
 
+/**
+ * 根据 duration_type 计算用户激活到期时间
+ * @returns MySQL DATETIME 格式的到期时间，或 null（永久）
+ */
+function calcActivationExpiry(durationType: string | null): Date | null {
+  if (!durationType || durationType === 'permanent') return null;
+  const now = new Date();
+  switch (durationType) {
+    case '1day':  return new Date(now.getTime() + 1 * 86400000);
+    case '7days': return new Date(now.getTime() + 7 * 86400000);
+    case 'month': return new Date(now.getTime() + 30 * 86400000);
+    case 'year':  return new Date(now.getTime() + 365 * 86400000);
+    default:      return null; // 未知类型默认永久
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { userId, error } = await verifyAuth(req);
   if (error) return error;
@@ -55,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   // Find activation code
   const activationCode = await queryOne<any>(
-    'SELECT id, code, max_uses, used_count, is_active, expires_at, tool_ids, grant_membership FROM activation_codes WHERE code = ?',
+    'SELECT id, code, max_uses, used_count, is_active, expires_at, tool_ids, duration_type, grant_membership FROM activation_codes WHERE code = ?',
     [code.trim()]
   );
 
@@ -70,8 +86,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (activationCode.expires_at && new Date(activationCode.expires_at) < new Date()) {
-    await createAuditLog({ userId, action: 'activate', status: 'failure', errorMessage: '激活码已过期', req });
-    return NextResponse.json({ error: '该激活码已过期' }, { status: 400 });
+    // 仅旧版激活码（有 expires_at 且无 duration_type）检查过期
+    if (!activationCode.duration_type) {
+      await createAuditLog({ userId, action: 'activate', status: 'failure', errorMessage: '激活码已过期', req });
+      return NextResponse.json({ error: '该激活码已过期' }, { status: 400 });
+    }
   }
 
   if (activationCode.max_uses !== null && activationCode.used_count >= activationCode.max_uses) {
@@ -128,12 +147,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 根据 duration_type 计算用户激活的过期时间
+  const userExpiresAt = calcActivationExpiry(activationCode.duration_type);
+
   // 批量插入激活记录
   if (isGlobalActivation) {
     await execute(
-      `INSERT INTO user_activations (id, user_id, activation_code_id, is_active, tool_id)
-       VALUES (?, ?, ?, 1, NULL)`,
-      [genId(), userId, activationCode.id]
+      `INSERT INTO user_activations (id, user_id, activation_code_id, is_active, expires_at, tool_id)
+       VALUES (?, ?, ?, 1, ?, NULL)`,
+      [genId(), userId, activationCode.id, userExpiresAt]
     );
   } else {
     // 过滤掉已激活的工具
@@ -146,9 +168,9 @@ export async function POST(req: NextRequest) {
 
     for (const toolId of newToolIds) {
       await execute(
-        `INSERT INTO user_activations (id, user_id, activation_code_id, is_active, tool_id)
-         VALUES (?, ?, ?, 1, ?)`,
-        [genId(), userId, activationCode.id, toolId]
+        `INSERT INTO user_activations (id, user_id, activation_code_id, is_active, expires_at, tool_id)
+         VALUES (?, ?, ?, 1, ?, ?)`,
+        [genId(), userId, activationCode.id, userExpiresAt, toolId]
       );
     }
   }
@@ -179,13 +201,13 @@ export async function POST(req: NextRequest) {
     );
     if (existingMembership) {
       await execute(
-        'UPDATE user_memberships SET is_member = 1, updated_at = NOW() WHERE user_id = ?',
-        [userId]
+        'UPDATE user_memberships SET is_member = 1, expires_at = ?, updated_at = NOW() WHERE user_id = ?',
+        [userExpiresAt, userId]
       );
     } else {
       await execute(
-        'INSERT INTO user_memberships (id, user_id, is_member) VALUES (?, ?, 1)',
-        [genId(), userId]
+        'INSERT INTO user_memberships (id, user_id, is_member, expires_at) VALUES (?, ?, 1, ?)',
+        [genId(), userId, userExpiresAt]
       );
     }
     console.log(`[Membership] Auto-granted membership to user ${userId} via activation code ${activationCode.code}`);

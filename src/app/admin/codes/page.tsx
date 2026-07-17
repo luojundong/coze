@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/api-client';
-import { Plus, RefreshCw, Copy, CheckCircle, Clock, Eye } from 'lucide-react';
+import { Plus, RefreshCw, Copy, CheckCircle, Eye } from 'lucide-react';
 
 interface BatchItem {
   batch_id: string;
@@ -15,6 +15,7 @@ interface BatchItem {
   batch_expires_at: string | null;
   all_active: number;
   batch_max_uses: number | null;
+  duration_type: string | null;
   tool_infos?: { id: string; name: string }[] | null;
 }
 
@@ -38,7 +39,7 @@ export default function AdminCodesPage() {
   // Create form
   const [formName, setFormName] = useState('管理员创建');
   const [formMaxUses, setFormMaxUses] = useState('1');
-  const [formExpiresDays, setFormExpiresDays] = useState('365');
+  const [formDurationType, setFormDurationType] = useState('permanent');
   const [formCount, setFormCount] = useState('1');
   const [formCustomCode, setFormCustomCode] = useState('');
   const [formToolIds, setFormToolIds] = useState<string[]>([]);  // 多选工具
@@ -103,7 +104,7 @@ export default function AdminCodesPage() {
       const body: Record<string, unknown> = {
         name: formName,
         max_uses: parseInt(formMaxUses, 10),
-        expires_days: parseInt(formExpiresDays, 10),
+        duration_type: formDurationType,
         count: parseInt(formCount, 10),
         grant_membership: formGrantMembership,
       };
@@ -164,6 +165,19 @@ export default function AdminCodesPage() {
     }
   };
 
+  const durationMap: Record<string, string> = {
+    '1day': '1天',
+    '7days': '7天',
+    'month': '月卡',
+    'year': '年卡',
+    'permanent': '永久卡',
+  };
+
+  const getDurationLabel = (durationType: string | null) => {
+    if (!durationType) return '-';
+    return durationMap[durationType] || durationType;
+  };
+
   if (!token) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -184,7 +198,7 @@ export default function AdminCodesPage() {
             <RefreshCw className="w-3.5 h-3.5" /> 刷新
           </button>
           <button
-            onClick={() => { setShowCreate(true); setCreatedCodes([]); setFormToolIds([]); setFormSelectAll(false); setFormGrantMembership(false); }}
+            onClick={() => { setShowCreate(true); setCreatedCodes([]); setFormToolIds([]); setFormSelectAll(false); setFormGrantMembership(false); setFormDurationType('permanent'); }}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
           >
             <Plus className="w-3.5 h-3.5" /> 创建激活码
@@ -317,16 +331,6 @@ export default function AdminCodesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">有效天数</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formExpiresDays}
-                    onChange={(e) => setFormExpiresDays(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">批量数量</label>
                   <input
                     type="number"
@@ -338,6 +342,32 @@ export default function AdminCodesPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">用户有效期（从激活日开始计算）</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { value: '1day', label: '1天' },
+                    { value: '7days', label: '7天' },
+                    { value: 'month', label: '月卡' },
+                    { value: 'year', label: '年卡' },
+                    { value: 'permanent', label: '永久卡' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFormDurationType(opt.value)}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        formDurationType === opt.value
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">激活码本身永久有效，此设置控制用户激活后的使用期限</p>
               </div>
             </div>
               {/* 授予会员身份 */}
@@ -379,7 +409,7 @@ export default function AdminCodesPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">适用工具</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">生成/已用</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">创建时间</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">过期时间</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">用户有效期</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">操作</th>
               </tr>
             </thead>
@@ -402,9 +432,8 @@ export default function AdminCodesPage() {
                       </td>
                       <td className="px-4 py-3 text-xs whitespace-nowrap">{b.total_count}/{b.total_used ?? 0}</td>
                       <td className="px-4 py-3 text-xs text-gray-500">{formatDate(b.batch_created_at)}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {b.batch_expires_at ? formatDate(b.batch_expires_at) : '永久'}
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {getDurationLabel(b.duration_type)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

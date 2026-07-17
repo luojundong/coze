@@ -1466,6 +1466,10 @@ export default function ToolDetailPage() {
                   ))
                 )}
               </div>
+              {/* 24小时提示 */}
+              <div className="p-2 border-t bg-gray-50">
+                <p className="text-[10px] text-gray-400 text-center">对话记录保留 24 小时</p>
+              </div>
             </div>
 
             {/* Sidebar toggle button */}

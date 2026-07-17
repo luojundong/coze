@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getToken } from '@/lib/api-client';
-import { ArrowLeft, Trash2, Copy, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Trash2, Copy, CheckCircle, XCircle } from 'lucide-react';
 
 interface CodeItem {
   id: string;
@@ -15,6 +15,7 @@ interface CodeItem {
   expires_at: string | null;
   created_at: string;
   tool_ids: string | null;
+  duration_type: string | null;
   tool_infos?: { id: string; name: string }[] | null;
   credit_amount: number;
 }
@@ -29,6 +30,7 @@ interface BatchInfo {
   batch_expires_at: string | null;
   all_active: number;
   batch_max_uses: number | null;
+  duration_type: string | null;
   tool_infos?: { id: string; name: string }[] | null;
 }
 
@@ -162,6 +164,19 @@ export default function BatchDetailPage() {
     }
   };
 
+  const durationMap: Record<string, string> = {
+    '1day': '1天',
+    '7days': '7天',
+    'month': '月卡',
+    'year': '年卡',
+    'permanent': '永久卡',
+  };
+
+  const getDurationLabel = (durationType: string | null) => {
+    if (!durationType) return '-';
+    return durationMap[durationType] || durationType;
+  };
+
   if (!token) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -208,9 +223,9 @@ export default function BatchDetailPage() {
             <p className="text-sm font-medium text-gray-900">{batchInfo.total_used} 次</p>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 mb-1">过期时间</p>
+            <p className="text-xs text-gray-500 mb-1">用户有效期</p>
             <p className="text-sm font-medium text-gray-900">
-              {formatDate(batchInfo.batch_expires_at)}
+              {getDurationLabel(batchInfo.duration_type)}
             </p>
           </div>
         </div>
@@ -235,7 +250,7 @@ export default function BatchDetailPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap w-20">积分</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap w-20">状态</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">创建时间</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">过期时间</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">用户有效期</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap w-24">操作</th>
                 </tr>
               </thead>
@@ -286,7 +301,7 @@ export default function BatchDetailPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(c.created_at)}</td>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {c.expires_at ? formatDate(c.expires_at) : '永久'}
+                        {getDurationLabel(c.duration_type)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 whitespace-nowrap">

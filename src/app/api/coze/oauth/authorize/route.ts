@@ -39,6 +39,9 @@ export async function GET(req: NextRequest) {
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
     state,
+    // 请求离线访问，确保 Coze 下发 refresh_token，使授权可长期自动续期，
+    // 避免 access token 过期后用户被迫频繁重新连接账户。
+    access_type: 'offline',
   });
 
   const authUrl = `${authBase}/api/permission/oauth2/authorize?${params.toString()}`;

@@ -28,10 +28,12 @@ CREATE TABLE IF NOT EXISTS `conversation_messages` (
   `role` VARCHAR(16) NOT NULL COMMENT 'user / assistant',
   `content` TEXT NOT NULL,
   `content_type` VARCHAR(32) NULL DEFAULT 'text' COMMENT 'text / image / workflow_result',
+  `sort_order` INT NOT NULL DEFAULT 0 COMMENT '消息排序序号',
   `metadata` JSON NULL COMMENT '附加元数据',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `idx_msg_conv_id` (`conversation_id`),
   INDEX `idx_msg_created_at` (`created_at`),
+  INDEX `idx_msg_conv_sort` (`conversation_id`, `sort_order`),
   FOREIGN KEY (`conversation_id`) REFERENCES `conversations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

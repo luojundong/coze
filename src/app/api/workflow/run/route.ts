@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, verifyToolActivation } from '@/lib/auth-guard';
-import { getValidCozeTokenData } from '@/lib/coze-token';
+import { getValidCozeTokenData, refreshCozeToken } from '@/lib/coze-token';
 import { createAuditLog } from '@/lib/audit-log';
 import { deductCredits } from '@/lib/credit';
 import { collectMediaFromMessages, triggerBackgroundDownload } from '@/lib/media-downloader';
 import { queryOne } from '@/lib/db';
 import { getOAuthConfig } from '@/lib/oauth-config';
-import { extractImageUrls, removeImageUrls } from '@/lib/image-inline';
+import { buildMultimodalUserMessage } from '@/lib/image-inline';
 
 /**
  * 获取调用 Coze API 所需的 Token
@@ -177,8 +177,6 @@ export async function POST(req: NextRequest) {
       const protocol = req.headers.get('x-forwarded-proto') || 'https';
       const host = req.headers.get('host') || '';
       const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || `${protocol}://${host}`;
-      const imageUrls = extractImageUrls(rawUserMessage, publicBaseUrl);
-      const userMessage = removeImageUrls(rawUserMessage);
       endpoint = `${apiBaseUrl}/v3/chat`;
 
       // 多轮对话上下文截断：只保留最近 4 轮（8 条消息），避免历史过长导致推理超时
@@ -223,15 +221,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 构建 additional_messages：截断的历史 + 当前用户消息 + 图片消息
+      // 构建 additional_messages：截断的历史 + 当前多模态用户消息（文本/图片）
+      const userMessageObj = buildMultimodalUserMessage(rawUserMessage, publicBaseUrl);
       const additionalMessages = [
         ...truncatedHistory,
-        {
-          role: 'user',
-          content: userMessage,
-          content_type: 'text',
-        },
-        ...imageUrls.map(url => ({ role: 'user' as const, content: url, content_type: 'image' as const })),
+        userMessageObj,
       ];
 
       requestBody = {
@@ -253,7 +247,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const { response, responseText, retried } = await fetchWithRetry(endpoint, {
+    let { response, responseText, retried } = await fetchWithRetry(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -261,6 +255,36 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(requestBody),
     });
+
+    // Token 过期兜底：非平台 token 且 Coze 返回 401/令牌无效时，
+    // 强制刷新一次并自动重试，避免用户被要求重新连接账户。
+    if (!isPlatformToken) {
+      let errData: any = null;
+      try { errData = JSON.parse(responseText); } catch { /* 非 JSON 忽略 */ }
+      const errCode = errData?.error_code || errData?.code;
+      const errMsg = (errData?.msg || errData?.message || '').toLowerCase();
+      const tokenRejected = response.status === 401 || errCode === 401 || errCode === 4010 ||
+        errMsg.includes('token') || errMsg.includes('incorrect') || errMsg.includes('unauthorized');
+      if (tokenRejected && !response.ok) {
+        try {
+          const fresh = await refreshCozeToken(userId);
+          console.log(`[Coze Run] Token rejected by Coze, refreshed & retrying for ${config.name}`);
+          const retryRes = await fetchWithRetry(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${fresh.accessToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+          response = retryRes.response;
+          responseText = retryRes.responseText;
+          retried = retried || retryRes.retried;
+        } catch (refreshErr) {
+          console.error('[Coze Run] Token refresh on 401 failed:', (refreshErr as Error)?.message);
+        }
+      }
+    }
 
     if (retried) {
       console.log(`[Coze Run] Request succeeded after retry for ${config.name}`);

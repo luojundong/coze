@@ -22,6 +22,7 @@ export const activationCodes = pgTable(
 		tool_id: varchar("tool_id", { length: 36 }),
 		tool_ids: text("tool_ids"),  // 逗号分隔的工具ID列表，NULL=全部工具
 		batch_id: varchar("batch_id", { length: 36 }),
+		duration_type: varchar("duration_type", { length: 16 }),  // 用户激活有效期: 1day/7days/month/year/permanent
 		grant_membership: integer("grant_membership").default(0).notNull(),  // 1=激活时授予会员身份
 		created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updated_at: timestamp("updated_at", { withTimezone: true }),

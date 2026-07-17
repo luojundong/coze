@@ -85,3 +85,49 @@ export async function GET(req: NextRequest) {
     pageSize,
   });
 }
+
+/**
+ * DELETE /api/admin/conversations
+ * 批量物理删除对话记录（连同消息）
+ * Body: { ids: string[] }
+ */
+export async function DELETE(req: NextRequest) {
+  const { userId: adminId, error } = await verifyAdminAuth(req);
+  if (error) return error;
+
+  const body = await req.json().catch(() => null);
+  const ids: string[] = Array.isArray(body?.ids)
+    ? body.ids.filter((x: any) => typeof x === 'string' && x.length > 0)
+    : [];
+
+  if (ids.length === 0) {
+    return NextResponse.json(
+      { error: '缺少 ids 参数' },
+      { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+    );
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+
+  // 先删消息（兜底），再删对话
+  await execute(
+    `DELETE FROM conversation_messages WHERE conversation_id IN (${placeholders})`,
+    ids
+  );
+  const result = await execute(
+    `DELETE FROM conversations WHERE id IN (${placeholders})`,
+    ids
+  );
+
+  await createAuditLog({
+    userId: adminId,
+    action: 'admin_batch_delete_conversations',
+    resourceType: 'conversation',
+    details: { count: (result as any)?.affectedRows ?? 0, ids },
+  });
+
+  return NextResponse.json({
+    success: true,
+    deleted: (result as any)?.affectedRows ?? 0,
+  });
+}

@@ -16,7 +16,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const accessToken = await getValidCozeToken(userId);
+    // 获取 Coze Token：用户 Token 优先；用户未连接 Coze 时降级到平台 Workload Token；
+    // 两者都无 → 返回友好 403（避免 500），提示用户连接 Coze 账户。
+    let accessToken: string;
+    try {
+      accessToken = await getValidCozeToken(userId);
+    } catch {
+      const platformToken = process.env.COZE_WORKLOAD_API_TOKEN;
+      if (platformToken) {
+        accessToken = platformToken;
+      } else {
+        return NextResponse.json(
+          { error: '请先连接 Coze 账户', needCozeAuth: true },
+          { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+        );
+      }
+    }
     const workspaceId = process.env.COZE_PROJECT_SPACE_ID;
 
     const url = new URL(`${COZE_API_BASE_URL}/v1/workflows`);

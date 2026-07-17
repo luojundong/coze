@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
           SUM(used_count) as total_used,
           MIN(expires_at) as batch_expires_at,
           MIN(is_active) as all_active,
-          MAX(max_uses) as batch_max_uses
+          MAX(max_uses) as batch_max_uses,
+          MAX(duration_type) as duration_type
          FROM activation_codes 
          GROUP BY COALESCE(batch_id, CONCAT(name, '|', IFNULL(tool_ids, ''), '|', DATE_FORMAT(created_at, '%Y-%m-%d %H:%i')))
          ORDER BY MAX(created_at) DESC
@@ -140,10 +141,34 @@ export async function POST(req: NextRequest) {
   const { userId: adminId, error } = await verifyAdminAuth(req);
   if (error) return error;
 
-  let body: { name?: string; code?: string; max_uses?: number; expires_days?: number; count?: number; tool_ids?: string[] | null; grant_membership?: boolean };
+  let body: { name?: string; code?: string; max_uses?: number; expires_days?: number; duration_type?: string; count?: number; tool_ids?: string[] | null; grant_membership?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ error: '请求格式错误' }, { status: 400 }); }
 
-  const { name = '管理员创建', max_uses = 1, expires_days = 365, count = 1, tool_ids = null, grant_membership = false } = body;
+  const {
+    name = '管理员创建',
+    max_uses = 1,
+    duration_type = 'permanent',
+    count = 1,
+    tool_ids = null,
+    grant_membership = false,
+  } = body;
+
+  // 兼容旧参数 expires_days：如果传了 expires_days 但没传 duration_type，用 expires_days 映射
+  let finalDurationType = duration_type;
+  if (!body.duration_type && body.expires_days) {
+    const days = body.expires_days;
+    if (days === 1) finalDurationType = '1day';
+    else if (days === 7) finalDurationType = '7days';
+    else if (days === 30) finalDurationType = 'month';
+    else if (days >= 365) finalDurationType = 'year';
+    else finalDurationType = 'permanent'; // fallback
+  }
+
+  // 校验 duration_type
+  const validDurations = ['1day', '7days', 'month', 'year', 'permanent'];
+  if (!validDurations.includes(finalDurationType)) {
+    return NextResponse.json({ error: '无效的有效期类型' }, { status: 400 });
+  }
   
   // tool_ids 为 null 或空数组表示全部工具
   const toolIdsStr = (tool_ids && tool_ids.length > 0) ? tool_ids.join(',') : null;
@@ -153,11 +178,11 @@ export async function POST(req: NextRequest) {
 
   for (let i = 0; i < Math.min(count, 50); i++) {
     const code = body.code && count === 1 ? body.code : `ACT-${randomBytes(4).toString('hex').toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
-    const expiresAt = new Date(Date.now() + expires_days * 86400000);
 
+    // 激活码本身永久有效，不设 expires_at；用户激活后根据 duration_type 计算过期时间
     await execute(
-      `INSERT INTO activation_codes (id, name, code, max_uses, expires_at, tool_ids, batch_id, grant_membership) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [genId(), name, code, max_uses, expiresAt, toolIdsStr, batchId, grant_membership ? 1 : 0]
+      `INSERT INTO activation_codes (id, name, code, max_uses, tool_ids, batch_id, duration_type, grant_membership) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [genId(), name, code, max_uses, toolIdsStr, batchId, finalDurationType, grant_membership ? 1 : 0]
     );
     codes.push(code);
   }

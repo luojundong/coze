@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, verifyToolActivation } from '@/lib/auth-guard';
-import { getValidCozeTokenData, getCozeToken } from '@/lib/coze-token';
+import { getValidCozeTokenData, getCozeToken, refreshCozeToken } from '@/lib/coze-token';
 import { createAuditLog } from '@/lib/audit-log';
 import { deductCredits } from '@/lib/credit';
 import { collectMediaFromSSEEvent, collectMediaFromMessages, triggerBackgroundDownload } from '@/lib/media-downloader';
 import { queryOne } from '@/lib/db';
 import { getOAuthConfig } from '@/lib/oauth-config';
 import { genId } from '@/lib/db';
-import { extractImageUrls, removeImageUrls } from '@/lib/image-inline';
+import { buildMultimodalUserMessage } from '@/lib/image-inline';
 
 /**
  * 获取调用 Coze API 所需的 Token
@@ -308,8 +308,6 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get('x-forwarded-proto') || 'https';
     const host = req.headers.get('host') || '';
     const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || `${protocol}://${host}`;
-    const imageUrls = extractImageUrls(rawUserMessage, publicBaseUrl);
-    const userMessage = removeImageUrls(rawUserMessage);
 
     // 初始化任务
     taskStore.set(taskId, {
@@ -354,10 +352,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const userMessageObj = buildMultimodalUserMessage(rawUserMessage, publicBaseUrl);
     const additionalMessages = [
       ...truncatedHistory,
-      { role: 'user', content: userMessage, content_type: 'text' },
-      ...imageUrls.map(url => ({ role: 'user' as const, content: url, content_type: 'image' as const })),
+      userMessageObj,
     ];
 
     const requestBody: Record<string, unknown> = {
@@ -376,8 +374,8 @@ export async function POST(req: NextRequest) {
     console.log(`[Stream ${taskId}] Calling Coze /v3/chat, bot_id: ${config.coze_id}, apiBaseUrl: ${apiBaseUrl}`);
     console.log(`[Stream ${taskId}] Request body:`, JSON.stringify(requestBody).slice(0, 500));
 
-    // ===== 关键：只发起一次 Coze 请求 =====
-    const { response: cozeResponse, responseText: cozeText, retried, bodyConsumed } = await fetchWithRetry(`${apiBaseUrl}/v3/chat`, {
+    // ===== 关键：只发起一次 Coze 请求（Token 失效时自动刷新并重试一次）=====
+    let { response: cozeResponse, responseText: cozeText, retried, bodyConsumed } = await fetchWithRetry(`${apiBaseUrl}/v3/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -385,6 +383,36 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(requestBody),
     });
+
+    // 非平台 token 且 Coze 返回 401/令牌无效：强制刷新一次并重试，避免用户被要求重新连接账户
+    if (!isPlatformToken && cozeResponse && !cozeResponse.ok) {
+      let errData: any = null;
+      try { errData = JSON.parse(cozeText); } catch { /* 忽略 */ }
+      const errCode = errData?.error_code || errData?.code;
+      const errMsg = (errData?.msg || errData?.message || '').toLowerCase();
+      const tokenRejected = cozeResponse.status === 401 || errCode === 401 || errCode === 4010 ||
+        errMsg.includes('token') || errMsg.includes('authentication') || errMsg.includes('incorrect') || errMsg.includes('unauthorized');
+      if (tokenRejected) {
+        try {
+          const fresh = await refreshCozeToken(userId);
+          console.log(`[Stream ${taskId}] Token rejected, refreshed & retrying`);
+          const retryRes = await fetchWithRetry(`${apiBaseUrl}/v3/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${fresh.accessToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+          cozeResponse = retryRes.response;
+          cozeText = retryRes.responseText;
+          retried = retried || retryRes.retried;
+          bodyConsumed = retryRes.bodyConsumed;
+        } catch (refreshErr) {
+          console.error(`[Stream ${taskId}] Token refresh on 401 failed:`, (refreshErr as Error)?.message);
+        }
+      }
+    }
 
     // 所有重试耗尽，cozeResponse 为 null
     if (!cozeResponse) {

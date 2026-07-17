@@ -163,3 +163,6 @@ public/uploads/
 
 # 工作流生成媒体文件自动下载存储（手动清理）
 public/download/
+
+# IDE 内部数据（含 agent 记忆/自动化状态，勿推送到仓库）
+.codebuddy/
