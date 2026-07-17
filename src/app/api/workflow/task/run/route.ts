@@ -52,6 +52,7 @@ async function executeCozeTask(taskId: string, params: {
   apiBaseUrl: string;
   botId: string;
   cozeUserId: string;
+  isPlatformToken: boolean;
   rawUserMessage: string;
   publicBaseUrl?: string;
   conversationId?: string;
@@ -59,7 +60,7 @@ async function executeCozeTask(taskId: string, params: {
   configType: string;
   req: NextRequest;
 }) {
-  const { userId, accessToken, apiBaseUrl, botId, cozeUserId, rawUserMessage, publicBaseUrl, conversationId, configName, configType, req } = params;
+  const { userId, accessToken, apiBaseUrl, botId, cozeUserId, isPlatformToken, rawUserMessage, publicBaseUrl, conversationId, configName, configType, req } = params;
   const taskStartTime = Date.now();
 
   try {
@@ -411,7 +412,7 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const { accessToken, cozeUserId } = await getWorkflowToken(userId);
+    const { accessToken, cozeUserId, isPlatformToken } = await getWorkflowToken(userId);
     const oauthConfig = await getOAuthConfig();
     const apiBaseUrl = oauthConfig.apiBaseUrl || 'https://api.coze.cn';
 
@@ -463,6 +464,7 @@ export async function POST(req: NextRequest) {
       apiBaseUrl,
       botId: config.coze_id,
       cozeUserId: cozeUserId || userId,
+      isPlatformToken,
       rawUserMessage,
       publicBaseUrl,
       conversationId,
